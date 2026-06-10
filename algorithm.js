@@ -9,54 +9,34 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
     groupedByMenu[firstMenuKey].push(student);
   });
 
-  // Créer un groupe par menu (avec ses 3 activités)
+  // Créer un groupe par menu (avec ses 3 activités ENSEMBLE)
   const groupsResult = {};
 
   Object.entries(groupedByMenu).forEach(([menuLetter, studentsInMenu]) => {
+    // Vérifier la limite max
+    if (maxStudentsPerGroup && studentsInMenu.length > maxStudentsPerGroup) {
+      return; // Skip ce groupe si dépassement
+    }
+
     // Récupérer les 3 activités du menu
     const menuActivities = getMenuActivities(menuLetter, studentsInMenu);
 
     // Créer un groupe pour ce menu
     const groupKey = `menu-${menuLetter}`;
 
-    // Distribuer les étudiants entre les 3 activités du menu
-    const activitiesData = {};
-    menuActivities.forEach(activity => {
-      activitiesData[activity] = [];
-    });
-
-    // Distribution round-robin des étudiants entre les activités
-    studentsInMenu.forEach((student, index) => {
-      if (menuActivities.length > 0) {
-        // Trouver l'activité avec le moins d'étudiants
-        const sortedActivities = menuActivities.sort((a, b) =>
-          activitiesData[a].length - activitiesData[b].length
-        );
-        const activity = sortedActivities[0];
-
-        // Vérifier la limite max si elle existe
-        if (!maxStudentsPerGroup || activitiesData[activity].length < maxStudentsPerGroup) {
-          activitiesData[activity].push({
-            activity: formatActivityName(activity),
-            prenom: student.prenom,
-            nom: student.nom,
-            classe: student.classe,
-            note1: student.note1,
-            note2: student.note2,
-            note3: student.note3
-          });
-        }
-      }
-    });
-
-    // Créer l'objet du groupe avec ses 3 activités
+    // TOUS les étudiants du menu font TOUTES les 3 activités
+    // Pas de séparation, pas de distribution
     groupsResult[groupKey] = {
       name: `Menu ${menuLetter}`,
       letter: menuLetter,
-      activities: menuActivities.map(activity => ({
-        name: formatActivityName(activity),
-        key: activity,
-        members: activitiesData[activity]
+      activities: menuActivities.map(activity => formatActivityName(activity)),
+      members: studentsInMenu.map(m => ({
+        prenom: m.prenom,
+        nom: m.nom,
+        classe: m.classe,
+        note1: m.note1,
+        note2: m.note2,
+        note3: m.note3
       })),
       count: studentsInMenu.length,
       preferences: getPreferencesDistribution(studentsInMenu)

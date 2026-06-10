@@ -119,45 +119,34 @@ function createGroupCard(groupKey, groupData) {
   title.className = 'group-title';
   title.textContent = groupData.name;
 
+  const activities = document.createElement('div');
+  activities.className = 'group-activities';
+  activities.innerHTML = `<strong>Activités :</strong> ${groupData.activities.join(' • ')}`;
+
   const stats = document.createElement('div');
   stats.className = 'group-stats';
   stats.innerHTML = `<span>👥 ${groupData.count} étudiant${groupData.count > 1 ? 's' : ''}</span>`;
 
   header.appendChild(title);
+  header.appendChild(activities);
   header.appendChild(stats);
 
   const body = document.createElement('div');
   body.className = 'group-body';
 
-  // Afficher les 3 activités du menu
-  const activitiesDiv = document.createElement('div');
-  activitiesDiv.className = 'activities-container';
+  // Afficher la liste de TOUS les étudiants du menu
+  const membersDiv = document.createElement('div');
+  membersDiv.className = 'group-members';
 
-  groupData.activities.forEach(activity => {
-    const activitySection = document.createElement('div');
-    activitySection.className = 'activity-section';
-
-    const activityTitle = document.createElement('h3');
-    activityTitle.className = 'activity-title';
-    activityTitle.textContent = activity.name;
-
-    const membersList = document.createElement('div');
-    membersList.className = 'activity-members';
-
-    activity.members.forEach(member => {
-      const memberEl = document.createElement('div');
-      memberEl.className = 'member';
-      memberEl.innerHTML = `
-        <div class="member-name">${member.prenom} ${member.nom}</div>
-        <div class="member-info">${member.classe}</div>
-      `;
-      memberEl.addEventListener('click', () => showNotesModal(member));
-      membersList.appendChild(memberEl);
-    });
-
-    activitySection.appendChild(activityTitle);
-    activitySection.appendChild(membersList);
-    activitiesDiv.appendChild(activitySection);
+  groupData.members.forEach(member => {
+    const memberEl = document.createElement('div');
+    memberEl.className = 'member';
+    memberEl.innerHTML = `
+      <div class="member-name">${member.prenom} ${member.nom}</div>
+      <div class="member-info">${member.classe}</div>
+    `;
+    memberEl.addEventListener('click', () => showNotesModal(member));
+    membersDiv.appendChild(memberEl);
   });
 
   const prefsDiv = document.createElement('div');
@@ -167,7 +156,7 @@ function createGroupCard(groupKey, groupData) {
       .map(([menu, count]) => `<div class="preference-item">${menu}: ${count}</div>`)
       .join('');
 
-  body.appendChild(activitiesDiv);
+  body.appendChild(membersDiv);
   body.appendChild(prefsDiv);
 
   card.appendChild(header);

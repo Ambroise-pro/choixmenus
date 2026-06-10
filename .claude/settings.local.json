@@ -15,7 +15,9 @@
       "Bash(curl -s http://localhost:3000/)",
       "Bash(git commit -m 'Add documentation and environment config *)",
       "Bash(git commit *)",
-      "Bash(pip3 install *)"
+      "Bash(pip3 install *)",
+      "Bash(curl -s http://localhost:3000/api/demo-load)",
+      "Bash(python3 -c \"import sys, json; data = json.load\\(sys.stdin\\); groups = data['groups']; print\\(f'✅ {len\\(groups\\)} groupes'\\); [print\\(f' {k}: {v[\\\\\"count\\\\\"]} étudiants, activités: {v.get\\(\\\\\"activities\\\\\", []\\)}'\\) for k, v in list\\(groups.items\\(\\)\\)[:3]]\")"
     ]
   }
 }
