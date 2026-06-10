@@ -82,20 +82,24 @@ function displayResults() {
 
   // Mettre à jour les stats
   document.getElementById('studentCount').textContent = students.length;
-  const groupsWithStudents = Object.values(groups).filter(g => g.count > 0);
-  document.getElementById('groupCount').textContent = groupsWithStudents.length;
-  const avgSize = groupsWithStudents.length > 0
-    ? (students.length / groupsWithStudents.length).toFixed(1)
+  const groupsCount = Object.keys(groups).length;
+  document.getElementById('groupCount').textContent = groupsCount;
+  const avgSize = groupsCount > 0
+    ? (students.length / groupsCount).toFixed(1)
     : 0;
   document.getElementById('avgGroupSize').textContent = avgSize;
 
-  // Afficher les groupes
+  // Afficher les groupes (par menu)
   groupsContainer.innerHTML = '';
   Object.entries(groups)
-    .filter(([_, g]) => g.count > 0)
-    .sort((a, b) => b[1].count - a[1].count)
-    .forEach(([activity, groupData]) => {
-      const card = createGroupCard(activity, groupData);
+    .sort((a, b) => {
+      // Trier par lettre de menu (A, B, C, D, E)
+      const letterA = a[1].letter || '';
+      const letterB = b[1].letter || '';
+      return letterA.localeCompare(letterB);
+    })
+    .forEach(([groupKey, groupData]) => {
+      const card = createGroupCard(groupKey, groupData);
       groupsContainer.appendChild(card);
     });
 
@@ -104,7 +108,7 @@ function displayResults() {
   errorSection.classList.add('hidden');
 }
 
-function createGroupCard(activity, groupData) {
+function createGroupCard(groupKey, groupData) {
   const card = document.createElement('div');
   card.className = 'group-card';
 
@@ -125,18 +129,35 @@ function createGroupCard(activity, groupData) {
   const body = document.createElement('div');
   body.className = 'group-body';
 
-  const membersDiv = document.createElement('div');
-  membersDiv.className = 'group-members';
+  // Afficher les 3 activités du menu
+  const activitiesDiv = document.createElement('div');
+  activitiesDiv.className = 'activities-container';
 
-  groupData.members.forEach(member => {
-    const memberEl = document.createElement('div');
-    memberEl.className = 'member';
-    memberEl.innerHTML = `
-      <div class="member-name">${member.prenom} ${member.nom}</div>
-      <div class="member-info">${member.classe}</div>
-    `;
-    memberEl.addEventListener('click', () => showNotesModal(member));
-    membersDiv.appendChild(memberEl);
+  groupData.activities.forEach(activity => {
+    const activitySection = document.createElement('div');
+    activitySection.className = 'activity-section';
+
+    const activityTitle = document.createElement('h3');
+    activityTitle.className = 'activity-title';
+    activityTitle.textContent = activity.name;
+
+    const membersList = document.createElement('div');
+    membersList.className = 'activity-members';
+
+    activity.members.forEach(member => {
+      const memberEl = document.createElement('div');
+      memberEl.className = 'member';
+      memberEl.innerHTML = `
+        <div class="member-name">${member.prenom} ${member.nom}</div>
+        <div class="member-info">${member.classe}</div>
+      `;
+      memberEl.addEventListener('click', () => showNotesModal(member));
+      membersList.appendChild(memberEl);
+    });
+
+    activitySection.appendChild(activityTitle);
+    activitySection.appendChild(membersList);
+    activitiesDiv.appendChild(activitySection);
   });
 
   const prefsDiv = document.createElement('div');
@@ -146,7 +167,7 @@ function createGroupCard(activity, groupData) {
       .map(([menu, count]) => `<div class="preference-item">${menu}: ${count}</div>`)
       .join('');
 
-  body.appendChild(membersDiv);
+  body.appendChild(activitiesDiv);
   body.appendChild(prefsDiv);
 
   card.appendChild(header);

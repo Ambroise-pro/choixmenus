@@ -1,77 +1,65 @@
 function createBalancedGroups(students, maxStudentsPerGroup = null) {
-  // Extraire tous les menus/activités uniques
-  const activities = new Set();
-  students.forEach(s => {
-    s.menus.forEach(m => {
-      m.activities.forEach(a => activities.add(a.toLowerCase()));
-    });
-  });
-
-  const activityList = Array.from(activities).sort();
-
   // Grouper les étudiants par leur premier choix de menu
-  const groupedByFirstChoice = {};
+  const groupedByMenu = {};
   students.forEach(student => {
     const firstMenuKey = student.menus[0]?.letter || 'UNKNOWN';
-    if (!groupedByFirstChoice[firstMenuKey]) {
-      groupedByFirstChoice[firstMenuKey] = [];
+    if (!groupedByMenu[firstMenuKey]) {
+      groupedByMenu[firstMenuKey] = [];
     }
-    groupedByFirstChoice[firstMenuKey].push(student);
+    groupedByMenu[firstMenuKey].push(student);
   });
 
-  // Créer les groupes pour chaque activité
-  const groups = {};
-  activityList.forEach(activity => {
-    groups[activity] = [];
-  });
+  // Créer un groupe par menu (avec ses 3 activités)
+  const groupsResult = {};
 
-  // Distribuer les étudiants de manière équilibrée
-  const sortedGroups = Object.entries(groupedByFirstChoice)
-    .sort((a, b) => b[1].length - a[1].length);
+  Object.entries(groupedByMenu).forEach(([menuLetter, studentsInMenu]) => {
+    // Récupérer les 3 activités du menu
+    const menuActivities = getMenuActivities(menuLetter, studentsInMenu);
 
-  // Pour chaque groupe de premier choix, distribuer les étudiants
-  sortedGroups.forEach(([menuLetter, studentsInGroup]) => {
-    // Distribuer dans les activités du menu correspondant
-    const menuActivities = getMenuActivities(menuLetter, studentsInGroup);
+    // Créer un groupe pour ce menu
+    const groupKey = `menu-${menuLetter}`;
 
-    // Distribuer de manière round-robin
-    let activityIndex = 0;
-    studentsInGroup.forEach((student) => {
+    // Distribuer les étudiants entre les 3 activités du menu
+    const activitiesData = {};
+    menuActivities.forEach(activity => {
+      activitiesData[activity] = [];
+    });
+
+    // Distribution round-robin des étudiants entre les activités
+    studentsInMenu.forEach((student, index) => {
       if (menuActivities.length > 0) {
-        // Trouver le groupe avec le moins d'étudiants
+        // Trouver l'activité avec le moins d'étudiants
         const sortedActivities = menuActivities.sort((a, b) =>
-          groups[a].length - groups[b].length
+          activitiesData[a].length - activitiesData[b].length
         );
         const activity = sortedActivities[0];
 
         // Vérifier la limite max si elle existe
-        if (!maxStudentsPerGroup || groups[activity].length < maxStudentsPerGroup) {
-          groups[activity].push({
-            ...student,
-            assignedActivity: activity,
-            assignedMenu: menuLetter
+        if (!maxStudentsPerGroup || activitiesData[activity].length < maxStudentsPerGroup) {
+          activitiesData[activity].push({
+            activity: formatActivityName(activity),
+            prenom: student.prenom,
+            nom: student.nom,
+            classe: student.classe,
+            note1: student.note1,
+            note2: student.note2,
+            note3: student.note3
           });
         }
       }
     });
-  });
 
-  // Convertir en format lisible (SANS moyennes)
-  const groupsResult = {};
-  Object.entries(groups).forEach(([activity, members]) => {
-    groupsResult[activity] = {
-      name: formatActivityName(activity),
-      members: members.map(m => ({
-        id: m.id,
-        nom: m.nom,
-        prenom: m.prenom,
-        classe: m.classe,
-        note1: m.note1,
-        note2: m.note2,
-        note3: m.note3
+    // Créer l'objet du groupe avec ses 3 activités
+    groupsResult[groupKey] = {
+      name: `Menu ${menuLetter}`,
+      letter: menuLetter,
+      activities: menuActivities.map(activity => ({
+        name: formatActivityName(activity),
+        key: activity,
+        members: activitiesData[activity]
       })),
-      count: members.length,
-      preferences: getPreferencesDistribution(members)
+      count: studentsInMenu.length,
+      preferences: getPreferencesDistribution(studentsInMenu)
     };
   });
 
