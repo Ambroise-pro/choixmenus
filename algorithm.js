@@ -1,52 +1,100 @@
 function createBalancedGroups(students, maxStudentsPerGroup = null) {
-  // Grouper les étudiants par leur premier choix de menu
-  const groupedByMenu = {};
-  students.forEach(student => {
-    const firstMenuKey = student.menus[0]?.letter || 'UNKNOWN';
-    if (!groupedByMenu[firstMenuKey]) {
-      groupedByMenu[firstMenuKey] = [];
-    }
-    groupedByMenu[firstMenuKey].push(student);
-  });
-
-  // Créer un groupe par menu (avec ses 3 activités ENSEMBLE)
+  const menus = ['A', 'B', 'C', 'D', 'E'];
+  const targetSize = Math.floor(students.length / menus.length);
   const groupsResult = {};
 
-  Object.entries(groupedByMenu).forEach(([menuLetter, studentsInMenu]) => {
-    // Vérifier la limite max - si elle est dépassée, ne pas créer le groupe
+  // Initialiser les groupes vides
+  menus.forEach(letter => {
+    groupsResult[`menu-${letter}`] = {
+      letter,
+      members: [],
+      studentObjects: []
+    };
+  });
+
+  // Pour chaque niveau de préférence (1 à 5)
+  for (let preferenceLevel = 1; preferenceLevel <= 5; preferenceLevel++) {
+    // Chercher les étudiants non assignés et trier par leur préférence actuelle
+    const unassigned = students.filter(s => !s.assigned);
+
+    // Grouper les non-assignés par leur préférence à ce niveau
+    const byPreference = {};
+    unassigned.forEach(student => {
+      if (student.menus[preferenceLevel - 1]) {
+        const letter = student.menus[preferenceLevel - 1].letter;
+        if (!byPreference[letter]) byPreference[letter] = [];
+        byPreference[letter].push(student);
+      }
+    });
+
+    // Ajouter les étudiants aux groupes, priorité aux groupes non complets
+    Object.entries(byPreference).forEach(([letter, studentsForThisMenu]) => {
+      studentsForThisMenu.forEach(student => {
+        if (!student.assigned && groupsResult[`menu-${letter}`].members.length < targetSize) {
+          groupsResult[`menu-${letter}`].members.push(letter);
+          groupsResult[`menu-${letter}`].studentObjects.push(student);
+          student.assigned = true;
+        }
+      });
+    });
+  }
+
+  // Ajouter les étudiants non assignés aux groupes qui ne sont pas pleins
+  const unassigned = students.filter(s => !s.assigned);
+  unassigned.forEach(student => {
+    for (let letter of menus) {
+      if (groupsResult[`menu-${letter}`].members.length < targetSize) {
+        groupsResult[`menu-${letter}`].members.push(letter);
+        groupsResult[`menu-${letter}`].studentObjects.push(student);
+        student.assigned = true;
+        break;
+      }
+    }
+  });
+
+  // Construire le résultat final
+  const finalResult = {};
+  menus.forEach(letter => {
+    const groupData = groupsResult[`menu-${letter}`];
+    const studentsInMenu = groupData.studentObjects;
+
+    // Vérifier la limite max
     if (maxStudentsPerGroup && studentsInMenu.length > maxStudentsPerGroup) {
-      console.log(`Groupe Menu ${menuLetter} ignoré (${studentsInMenu.length} > ${maxStudentsPerGroup})`);
+      console.log(`Groupe Menu ${letter} ignoré (${studentsInMenu.length} > ${maxStudentsPerGroup})`);
       return;
     }
 
-    // Récupérer les 3 activités du menu
-    const menuActivities = getMenuActivities(menuLetter, studentsInMenu);
+    if (studentsInMenu.length === 0) {
+      console.log(`Groupe Menu ${letter} vide, non créé`);
+      return;
+    }
 
-    // Créer un groupe pour ce menu
-    const groupKey = `menu-${menuLetter}`;
+    // Récupérer les activités du menu
+    const menuActivities = getMenuActivities(letter, studentsInMenu);
 
-    // TOUS les étudiants du menu font TOUTES les 3 activités
-    // Pas de séparation, pas de distribution
-    groupsResult[groupKey] = {
-      name: `Menu ${menuLetter}`,
-      letter: menuLetter,
+    finalResult[`menu-${letter}`] = {
+      name: `Menu ${letter}`,
+      letter,
       activities: menuActivities.map(activity => formatActivityName(activity)),
-      members: studentsInMenu.map(m => ({
-        prenom: m.prenom,
-        nom: m.nom,
-        classe: m.classe,
-        note1: m.note1,
-        note2: m.note2,
-        note3: m.note3,
-        chosenMenuOrder: m.menus[0].order,
-        allMenus: m.menus
-      })),
+      members: studentsInMenu.map(m => {
+        const assignedMenuOrder = m.menus.findIndex(menu => menu.letter === letter) + 1;
+        return {
+          prenom: m.prenom,
+          nom: m.nom,
+          classe: m.classe,
+          note1: m.note1,
+          note2: m.note2,
+          note3: m.note3,
+          chosenMenuOrder: assignedMenuOrder,
+          allMenus: m.menus
+        };
+      }),
       count: studentsInMenu.length,
       preferences: getPreferencesDistribution(studentsInMenu)
     };
   });
 
-  return groupsResult;
+  return finalResult;
 }
 
 function getMenuActivities(menuLetter, students) {
