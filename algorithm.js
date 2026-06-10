@@ -3,60 +3,80 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   const targetSize = Math.floor(students.length / menus.length);
   const groupsResult = {};
 
+  // Définir les activités de chaque menu
+  const menuActivitiesList = {
+    'A': ['demi-fond', 'escalade', 'badminton'],
+    'B': ['escalade', 'volley-ball', 'demi-fond'],
+    'C': ['danse', 'natation', 'step'],
+    'D': ['volley-ball', 'danse', 'natation'],
+    'E': ['foot', 'musculation', 'demi-fond']
+  };
+
   // Initialiser les groupes vides
   menus.forEach(letter => {
     groupsResult[`menu-${letter}`] = {
       letter,
-      members: [],
       studentObjects: []
     };
   });
 
-  // Pour chaque niveau de préférence (1 à 5)
-  for (let preferenceLevel = 1; preferenceLevel <= 5; preferenceLevel++) {
-    // Chercher les étudiants non assignés et trier par leur préférence actuelle
-    const unassigned = students.filter(s => !s.assigned);
-
-    // Grouper les non-assignés par leur préférence à ce niveau
-    const byPreference = {};
-    unassigned.forEach(student => {
-      if (student.menus[preferenceLevel - 1]) {
-        const letter = student.menus[preferenceLevel - 1].letter;
-        if (!byPreference[letter]) byPreference[letter] = [];
-        byPreference[letter].push(student);
-      }
-    });
-
-    // Ajouter les étudiants aux groupes, priorité aux groupes non complets
-    Object.entries(byPreference).forEach(([letter, studentsForThisMenu]) => {
-      studentsForThisMenu.forEach(student => {
-        if (!student.assigned && groupsResult[`menu-${letter}`].members.length < targetSize) {
-          groupsResult[`menu-${letter}`].members.push(letter);
-          groupsResult[`menu-${letter}`].studentObjects.push(student);
-          student.assigned = true;
-        }
+  // Étape 1 : Assigner les étudiants par 1ère préférence
+  students.forEach(student => {
+    const firstMenuLetter = student.menus[0]?.letter;
+    if (firstMenuLetter) {
+      groupsResult[`menu-${firstMenuLetter}`].studentObjects.push({
+        student,
+        desiredMenu: firstMenuLetter,
+        nextChoice: student.menus[1]?.letter || null
       });
-    });
-  }
-
-  // Ajouter les étudiants non assignés aux groupes qui ne sont pas pleins
-  const unassigned = students.filter(s => !s.assigned);
-  unassigned.forEach(student => {
-    for (let letter of menus) {
-      if (groupsResult[`menu-${letter}`].members.length < targetSize) {
-        groupsResult[`menu-${letter}`].members.push(letter);
-        groupsResult[`menu-${letter}`].studentObjects.push(student);
-        student.assigned = true;
-        break;
-      }
     }
   });
 
-  // Construire le résultat final
+  // Étape 2 : Équilibrer les groupes surpeuplés
+  for (let iteration = 0; iteration < 5; iteration++) {
+    const overfull = menus.filter(m => groupsResult[`menu-${m}`].studentObjects.length > targetSize);
+
+    if (overfull.length === 0) break;
+
+    overfull.forEach(menuLetter => {
+      const groupStudents = groupsResult[`menu-${menuLetter}`].studentObjects;
+      const excess = groupStudents.length - targetSize;
+
+      if (excess > 0) {
+        // Calculer la compatibilité de chaque étudiant avec leur 2ème choix
+        const withCompatibility = groupStudents
+          .filter(s => s.nextChoice)
+          .map(s => ({
+            ...s,
+            compatibility: countCommonActivities(menuLetter, s.nextChoice, menuActivitiesList)
+          }))
+          .sort((a, b) => b.compatibility - a.compatibility); // Plus compatible en premier
+
+        // Rejeter les plus compatibles (moins de perte pour eux)
+        const toReject = withCompatibility.slice(0, excess);
+        const toKeepStudents = new Set(toReject.map(t => t.student.id));
+        const toKeep = groupStudents.filter(gs => !toKeepStudents.has(gs.student.id));
+
+        groupsResult[`menu-${menuLetter}`].studentObjects = toKeep;
+
+        // Placer les rejetés dans leur 2ème choix
+        toReject.forEach(rejected => {
+          const nextMenu = rejected.nextChoice;
+          groupsResult[`menu-${nextMenu}`].studentObjects.push({
+            student: rejected.student,
+            desiredMenu: nextMenu,
+            nextChoice: rejected.student.menus[2]?.letter || null
+          });
+        });
+      }
+    });
+  }
+
+  // Étape 3 : Construire le résultat final
   const finalResult = {};
   menus.forEach(letter => {
     const groupData = groupsResult[`menu-${letter}`];
-    const studentsInMenu = groupData.studentObjects;
+    const studentsInMenu = groupData.studentObjects.map(s => s.student);
 
     // Vérifier la limite max
     if (maxStudentsPerGroup && studentsInMenu.length > maxStudentsPerGroup) {
@@ -65,7 +85,6 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
     }
 
     if (studentsInMenu.length === 0) {
-      console.log(`Groupe Menu ${letter} vide, non créé`);
       return;
     }
 
@@ -98,6 +117,19 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   });
 
   return finalResult;
+}
+
+function countCommonActivities(menu1, menu2, menuActivitiesList) {
+  const activities1 = menuActivitiesList[menu1] || [];
+  const activities2 = menuActivitiesList[menu2] || [];
+
+  let common = 0;
+  activities1.forEach(a1 => {
+    if (activities2.some(a2 => a2.toLowerCase() === a1.toLowerCase())) {
+      common++;
+    }
+  });
+  return common;
 }
 
 function getMenuActivities(menuLetter, students) {
