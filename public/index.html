@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Équilibreur de Groupes EPS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🏃 Équilibreur de Groupes EPS</h1>
+      <p>Créez des groupes équilibrés à partir de vos choix de menus</p>
+    </header>
+
+    <main>
+      <section class="upload-section">
+        <h2>1. Charger votre fichier Excel</h2>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+          <p>📁 Glissez-déposez votre fichier Excel ici</p>
+          <p class="small">ou cliquez pour sélectionner</p>
+        </div>
+        <div id="loadingMessage" class="loading hidden">
+          Traitement en cours...
+        </div>
+      </section>
+
+      <section class="results-section hidden" id="resultsSection">
+        <h2>2. Résultats</h2>
+
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="studentCount">0</div>
+            <div class="stat-label">Étudiants</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="groupCount">0</div>
+            <div class="stat-label">Groupes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="avgGroupSize">0</div>
+            <div class="stat-label">Taille moyenne</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="exportBtn" class="btn-primary">📥 Exporter en Excel</button>
+          <button id="newFileBtn" class="btn-secondary">+ Nouveau fichier</button>
+        </div>
+
+        <div class="groups-container" id="groupsContainer">
+          <!-- Les groupes seront affichés ici -->
+        </div>
+      </section>
+
+      <section class="error-section hidden" id="errorSection">
+        <div class="error-message" id="errorMessage"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Équilibreur de Groupes EPS • 2024</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
