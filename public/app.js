@@ -1,4 +1,5 @@
 let currentData = null;
+let currentMember = null;
 
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
@@ -14,6 +15,7 @@ const newFileBtn = document.getElementById('newFileBtn');
 const maxStudentsInput = document.getElementById('maxStudents');
 const createGroupsBtn = document.getElementById('createGroupsBtn');
 const notesModal = document.getElementById('notesModal');
+const justificationModal = document.getElementById('justificationModal');
 const modalClose = document.querySelector('.modal-close');
 
 let uploadedFile = null;
@@ -196,6 +198,8 @@ function createGroupCard(groupKey, groupData) {
 }
 
 function showNotesModal(member) {
+  currentMember = member;
+
   document.getElementById('modalTitle').textContent = `Notes de ${member.prenom} ${member.nom}`;
 
   const formatNote = (note, activity) => {
@@ -221,6 +225,14 @@ function showNotesModal(member) {
       `;
       preferencesList.appendChild(prefEl);
     });
+  }
+
+  // Afficher/masquer le bouton justification selon si l'étudiant a été rebasculé
+  const justBtn = document.getElementById('showJustificationBtn');
+  if (member.rebasculage && member.rebasculage.wasRebasculé) {
+    justBtn.style.display = 'block';
+  } else {
+    justBtn.style.display = 'none';
   }
 
   notesModal.classList.remove('hidden');
@@ -298,11 +310,121 @@ if (window.location.search === '?demo-data') {
   window.addEventListener('load', loadDemoDataFromServer);
 }
 
+function showJustificationModal(member) {
+  const rebasculage = member.rebasculage;
+  if (!rebasculage || !rebasculage.wasRebasculé) {
+    return;
+  }
+
+  document.getElementById('justificationTitle').textContent = `Justification - ${member.prenom} ${member.nom}`;
+
+  const reason = rebasculage.reason;
+  const menuActivities = {
+    'A': ['Demi-fond', 'Escalade', 'Badminton'],
+    'B': ['Escalade', 'Volley-ball', 'Demi-fond'],
+    'C': ['Danse', 'Natation', 'Step'],
+    'D': ['Volley-ball', 'Danse', 'Natation'],
+    'E': ['Foot', 'Musculation', 'Demi-fond']
+  };
+
+  const fromActivities = menuActivities[reason.fromMenu] || [];
+  const toActivities = menuActivities[reason.toMenu] || [];
+
+  const commonActivities = fromActivities.filter(a =>
+    toActivities.some(b => a.toLowerCase() === b.toLowerCase())
+  );
+
+  let html = `
+    <div class="justification-section">
+      <h3>📌 Votre situation</h3>
+      <div class="justification-item">
+        <strong>Classe :</strong> ${member.classe}<br>
+        <strong>1ère choix :</strong> Menu ${reason.fromMenu}<br>
+        <strong>Placement final :</strong> Menu ${reason.toMenu}
+        <span class="status-badge status-rebasculé">Rebasculé</span>
+      </div>
+    </div>
+
+    <div class="justification-section">
+      <h3>🔴 Pourquoi ce rebasculage ?</h3>
+      <div class="justification-item">
+        Le Menu ${reason.fromMenu} a reçu <strong>${reason.surplusDemand} demandes</strong> pour <strong>${reason.targetSize} places</strong>.
+        <br><br>
+        <strong>Surplus :</strong> ${reason.surplusDemand - reason.targetSize} étudiant(s) à rebasculer
+      </div>
+    </div>
+
+    <div class="justification-section">
+      <h3>✅ Analyse de votre cas</h3>
+      <div class="justification-item highlight">
+        <strong>Compatibilité avec Menu ${reason.toMenu} :</strong><br><br>
+        Activités conservées : <span class="compatibility-score">${commonActivities.length}/3 = ${reason.compatibilityPercent}%</span>
+      </div>
+      <div style="padding: 12px; font-size: 0.9em; color: #555;">
+        ${commonActivities.map(a => `✓ ${a} (conservé)`).join('<br>')}
+        ${toActivities.filter(a => !commonActivities.some(b => a.toLowerCase() === b.toLowerCase())).map((a, i) => {
+          const replaced = fromActivities[i];
+          return `<br>↔ ${replaced} → ${a} (changement)`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="justification-section">
+      <h3>📋 Pourquoi Menu ${reason.toMenu} ?</h3>
+      <div class="justification-item">
+        Vous avez ${reason.compatibilityPercent}% de vos activités préférées conservées.
+        <br><br>
+        C'est le meilleur compromis possible pour :
+        <br>✓ Respecter votre 2ème choix
+        <br>✓ Garder un maximum de vos activités préférées
+        <br>✓ Équilibrer tous les groupes (${reason.targetSize} étudiants par menu)
+      </div>
+    </div>
+
+    <div class="justification-section">
+      <h3>🎯 Résultat final</h3>
+      <div class="justification-item">
+        <strong>Menu affecté :</strong> ${reason.toMenu}<br>
+        <strong>Activités :</strong> ${toActivities.join(' + ')}<br>
+        <strong>Groupe :</strong> 28 étudiants
+      </div>
+    </div>
+  `;
+
+  document.getElementById('justificationContent').innerHTML = html;
+  notesModal.classList.add('hidden');
+  justificationModal.classList.remove('hidden');
+}
+
 // Modal controls
-modalClose.addEventListener('click', () => notesModal.classList.add('hidden'));
+const allModalCloses = document.querySelectorAll('.modal-close');
+allModalCloses.forEach(close => {
+  close.addEventListener('click', () => {
+    notesModal.classList.add('hidden');
+    justificationModal.classList.add('hidden');
+  });
+});
+
 notesModal.addEventListener('click', (e) => {
   if (e.target === notesModal) {
     notesModal.classList.add('hidden');
+  }
+});
+
+justificationModal.addEventListener('click', (e) => {
+  if (e.target === justificationModal) {
+    justificationModal.classList.add('hidden');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const showJustBtn = document.getElementById('showJustificationBtn');
+  if (showJustBtn) {
+    showJustBtn.addEventListener('click', () => {
+      if (currentMember) {
+        showJustificationModal(currentMember);
+      }
+    });
   }
 });
 

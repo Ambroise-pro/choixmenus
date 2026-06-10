@@ -2,6 +2,7 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   const menus = ['A', 'B', 'C', 'D', 'E'];
   const targetSize = Math.floor(students.length / menus.length);
   const groupsResult = {};
+  const rebasculageMap = {}; // Tracker les rebasculages
 
   // Définir les activités de chaque menu
   const menuActivitiesList = {
@@ -29,6 +30,14 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
         desiredMenu: firstMenuLetter,
         nextChoice: student.menus[1]?.letter || null
       });
+      rebasculageMap[student.id] = {
+        studentId: student.id,
+        desiredMenu: firstMenuLetter,
+        finalMenu: firstMenuLetter,
+        wasRebasculé: false,
+        reason: null,
+        compatibility: null
+      };
     }
   });
 
@@ -41,6 +50,7 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
     overfull.forEach(menuLetter => {
       const groupStudents = groupsResult[`menu-${menuLetter}`].studentObjects;
       const excess = groupStudents.length - targetSize;
+      const totalDemand = groupStudents.length;
 
       if (excess > 0) {
         // Calculer la compatibilité de chaque étudiant avec leur 2ème choix
@@ -59,7 +69,7 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
 
         groupsResult[`menu-${menuLetter}`].studentObjects = toKeep;
 
-        // Placer les rejetés dans leur 2ème choix
+        // Placer les rejetés dans leur 2ème choix et tracker le rebasculage
         toReject.forEach(rejected => {
           const nextMenu = rejected.nextChoice;
           groupsResult[`menu-${nextMenu}`].studentObjects.push({
@@ -67,6 +77,23 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
             desiredMenu: nextMenu,
             nextChoice: rejected.student.menus[2]?.letter || null
           });
+
+          // Enregistrer le rebasculage
+          rebasculageMap[rejected.student.id] = {
+            studentId: rejected.student.id,
+            desiredMenu: menuLetter,
+            finalMenu: nextMenu,
+            wasRebasculé: true,
+            reason: {
+              surplusDemand: totalDemand,
+              targetSize: targetSize,
+              compatibilityScore: rejected.compatibility,
+              compatibilityPercent: ((rejected.compatibility / 3) * 100).toFixed(1),
+              fromMenu: menuLetter,
+              toMenu: nextMenu
+            },
+            compatibility: rejected.compatibility
+          };
         });
       }
     });
@@ -97,6 +124,7 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
       activities: menuActivities.map(activity => formatActivityName(activity)),
       members: studentsInMenu.map(m => {
         const assignedMenuOrder = m.menus.findIndex(menu => menu.letter === letter) + 1;
+        const rebasculageInfo = rebasculageMap[m.id];
         return {
           prenom: m.prenom,
           nom: m.nom,
@@ -108,7 +136,8 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
           note3: m.note3,
           note3Activity: m.note3Activity || '',
           chosenMenuOrder: assignedMenuOrder,
-          allMenus: m.menus
+          allMenus: m.menus,
+          rebasculage: rebasculageInfo
         };
       }),
       count: studentsInMenu.length,

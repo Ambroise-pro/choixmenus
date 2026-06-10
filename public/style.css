@@ -454,6 +454,99 @@ section h2 {
   min-width: 30px;
 }
 
+/* Buttons */
+.btn-justification {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95em;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.btn-justification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Modal Justification */
+.modal-justification {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.justification-detail {
+  font-size: 0.95em;
+  line-height: 1.6;
+  color: #333;
+}
+
+.justification-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f2ff;
+}
+
+.justification-section:last-child {
+  border-bottom: none;
+}
+
+.justification-section h3 {
+  color: #667eea;
+  font-size: 1.05em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.justification-item {
+  background: #f8f9ff;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.justification-item.highlight {
+  border-left-color: #764ba2;
+  background: #ebe8ff;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+.status-ok {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-rebasculé {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.compatibility-score {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
 /* Error Section */
 .error-section {
   display: none;
