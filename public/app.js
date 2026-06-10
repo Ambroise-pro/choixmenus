@@ -188,6 +188,33 @@ newFileBtn.addEventListener('click', () => {
   groupsContainer.innerHTML = '';
 });
 
+// Charger les données démo du serveur (140 étudiants)
+async function loadDemoDataFromServer() {
+  loadingMessage.classList.remove('hidden');
+  errorSection.classList.add('hidden');
+
+  try {
+    const response = await fetch('/api/demo-load');
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erreur lors du chargement des données');
+    }
+
+    currentData = await response.json();
+    displayResults();
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    loadingMessage.classList.add('hidden');
+  }
+}
+
+// Si mode démo avec données serveur
+if (window.location.search === '?demo-data') {
+  window.addEventListener('load', loadDemoDataFromServer);
+}
+
 // Demo mode (load sample data for testing)
 if (window.location.search === '?demo') {
   window.addEventListener('load', () => {

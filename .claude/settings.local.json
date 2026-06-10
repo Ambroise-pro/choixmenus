@@ -13,7 +13,9 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(pkill -f \"node.*server.js\")",
       "Bash(curl -s http://localhost:3000/)",
-      "Bash(git commit -m 'Add documentation and environment config *)"
+      "Bash(git commit -m 'Add documentation and environment config *)",
+      "Bash(git commit *)",
+      "Bash(pip3 install *)"
     ]
   }
 }
