@@ -57,6 +57,37 @@ section h2 {
   margin-bottom: 30px;
 }
 
+.settings {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings label {
+  font-weight: 600;
+  color: #333;
+}
+
+.input-max-students {
+  flex: 1;
+  max-width: 150px;
+  padding: 8px 12px;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 1em;
+  transition: border-color 0.3s;
+}
+
+.input-max-students:focus {
+  outline: none;
+  border-color: #764ba2;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .upload-area {
   border: 3px dashed #667eea;
   border-radius: 8px;
@@ -239,6 +270,13 @@ section h2 {
   padding: 10px;
   border-bottom: 1px solid #f0f2ff;
   font-size: 0.95em;
+  cursor: pointer;
+  transition: background 0.3s;
+  border-radius: 4px;
+}
+
+.member:hover {
+  background: #f8f9ff;
 }
 
 .member:last-child {
@@ -256,15 +294,6 @@ section h2 {
   color: #666;
 }
 
-.member-grade {
-  display: inline-block;
-  background: #667eea;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-left: 5px;
-}
-
 .preferences {
   padding: 10px;
   background: #f8f9ff;
@@ -276,6 +305,103 @@ section h2 {
 
 .preference-item {
   padding: 4px 0;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-close {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.modal-close:hover {
+  color: #000;
+}
+
+.modal h2 {
+  color: #333;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 10px;
+}
+
+.notes-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.note-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f9ff;
+  border-radius: 6px;
+}
+
+.note-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.note-value {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 1.1em;
 }
 
 /* Error Section */

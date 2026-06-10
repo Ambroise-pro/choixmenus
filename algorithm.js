@@ -1,4 +1,4 @@
-function createBalancedGroups(students) {
+function createBalancedGroups(students, maxStudentsPerGroup = null) {
   // Extraire tous les menus/activités uniques
   const activities = new Set();
   students.forEach(s => {
@@ -31,37 +31,34 @@ function createBalancedGroups(students) {
 
   // Pour chaque groupe de premier choix, distribuer les étudiants
   sortedGroups.forEach(([menuLetter, studentsInGroup]) => {
-    // Trier les étudiants par note moyenne (pour équilibrer aussi les niveaux)
-    studentsInGroup.sort((a, b) => {
-      const avgA = (a.note1 + a.note2 + a.note3) / 3;
-      const avgB = (b.note1 + b.note2 + b.note3) / 3;
-      return avgB - avgA;
-    });
-
     // Distribuer dans les activités du menu correspondant
     const menuActivities = getMenuActivities(menuLetter, studentsInGroup);
 
     // Distribuer de manière round-robin
-    studentsInGroup.forEach((student, index) => {
+    let activityIndex = 0;
+    studentsInGroup.forEach((student) => {
       if (menuActivities.length > 0) {
-        const activityIndex = index % menuActivities.length;
-        const activity = menuActivities[activityIndex];
-        groups[activity].push({
-          ...student,
-          assignedActivity: activity,
-          assignedMenu: menuLetter
-        });
+        // Trouver le groupe avec le moins d'étudiants
+        const sortedActivities = menuActivities.sort((a, b) =>
+          groups[a].length - groups[b].length
+        );
+        const activity = sortedActivities[0];
+
+        // Vérifier la limite max si elle existe
+        if (!maxStudentsPerGroup || groups[activity].length < maxStudentsPerGroup) {
+          groups[activity].push({
+            ...student,
+            assignedActivity: activity,
+            assignedMenu: menuLetter
+          });
+        }
       }
     });
   });
 
-  // Convertir en format lisible avec statistiques
+  // Convertir en format lisible (SANS moyennes)
   const groupsResult = {};
   Object.entries(groups).forEach(([activity, members]) => {
-    const avgNote = members.length > 0
-      ? (members.reduce((sum, s) => sum + (s.note1 + s.note2 + s.note3) / 3, 0) / members.length).toFixed(2)
-      : 0;
-
     groupsResult[activity] = {
       name: formatActivityName(activity),
       members: members.map(m => ({
@@ -69,10 +66,11 @@ function createBalancedGroups(students) {
         nom: m.nom,
         prenom: m.prenom,
         classe: m.classe,
-        avgGrade: ((m.note1 + m.note2 + m.note3) / 3).toFixed(2)
+        note1: m.note1,
+        note2: m.note2,
+        note3: m.note3
       })),
       count: members.length,
-      avgGrade: avgNote,
       preferences: getPreferencesDistribution(members)
     };
   });

@@ -9,6 +9,9 @@ const errorMessage = document.getElementById('errorMessage');
 const groupsContainer = document.getElementById('groupsContainer');
 const exportBtn = document.getElementById('exportBtn');
 const newFileBtn = document.getElementById('newFileBtn');
+const maxStudentsInput = document.getElementById('maxStudents');
+const notesModal = document.getElementById('notesModal');
+const modalClose = document.querySelector('.modal-close');
 
 // Drag and drop
 uploadArea.addEventListener('dragover', (e) => {
@@ -49,6 +52,11 @@ async function handleFile(file) {
   const formData = new FormData();
   formData.append('file', file);
 
+  const maxStudents = maxStudentsInput.value;
+  if (maxStudents) {
+    formData.append('maxStudents', maxStudents);
+  }
+
   try {
     const response = await fetch('/api/upload', {
       method: 'POST',
@@ -74,13 +82,17 @@ function displayResults() {
 
   // Mettre à jour les stats
   document.getElementById('studentCount').textContent = students.length;
-  document.getElementById('groupCount').textContent = Object.keys(groups).length;
-  const avgSize = (students.length / Object.keys(groups).length).toFixed(1);
+  const groupsWithStudents = Object.values(groups).filter(g => g.count > 0);
+  document.getElementById('groupCount').textContent = groupsWithStudents.length;
+  const avgSize = groupsWithStudents.length > 0
+    ? (students.length / groupsWithStudents.length).toFixed(1)
+    : 0;
   document.getElementById('avgGroupSize').textContent = avgSize;
 
   // Afficher les groupes
   groupsContainer.innerHTML = '';
   Object.entries(groups)
+    .filter(([_, g]) => g.count > 0)
     .sort((a, b) => b[1].count - a[1].count)
     .forEach(([activity, groupData]) => {
       const card = createGroupCard(activity, groupData);
@@ -105,10 +117,7 @@ function createGroupCard(activity, groupData) {
 
   const stats = document.createElement('div');
   stats.className = 'group-stats';
-  stats.innerHTML = `
-    <span>👥 ${groupData.count} étudiant${groupData.count > 1 ? 's' : ''}</span>
-    <span>⭐ ${groupData.avgGrade}</span>
-  `;
+  stats.innerHTML = `<span>👥 ${groupData.count} étudiant${groupData.count > 1 ? 's' : ''}</span>`;
 
   header.appendChild(title);
   header.appendChild(stats);
@@ -124,11 +133,9 @@ function createGroupCard(activity, groupData) {
     memberEl.className = 'member';
     memberEl.innerHTML = `
       <div class="member-name">${member.prenom} ${member.nom}</div>
-      <div class="member-info">
-        ${member.classe}
-        <span class="member-grade">${member.avgGrade}</span>
-      </div>
+      <div class="member-info">${member.classe}</div>
     `;
+    memberEl.addEventListener('click', () => showNotesModal(member));
     membersDiv.appendChild(memberEl);
   });
 
@@ -146,6 +153,14 @@ function createGroupCard(activity, groupData) {
   card.appendChild(body);
 
   return card;
+}
+
+function showNotesModal(member) {
+  document.getElementById('modalTitle').textContent = `Notes de ${member.prenom} ${member.nom}`;
+  document.getElementById('note1Value').textContent = member.note1;
+  document.getElementById('note2Value').textContent = member.note2;
+  document.getElementById('note3Value').textContent = member.note3;
+  notesModal.classList.remove('hidden');
 }
 
 function showError(message) {
@@ -215,36 +230,40 @@ if (window.location.search === '?demo-data') {
   window.addEventListener('load', loadDemoDataFromServer);
 }
 
-// Demo mode (load sample data for testing)
-if (window.location.search === '?demo') {
-  window.addEventListener('load', () => {
-    const demoData = {
-      students: [
-        { id: 0, nom: 'Le Pannerer', prenom: 'Ambroise', classe: 'TA', menus: [], note1: 12, note2: 12, note3: 14 },
-        { id: 1, nom: 'dsq', prenom: 'dqs', classe: 'TC', menus: [], note1: 13, note2: 12, note3: 17 }
-      ],
-      groups: {
-        'escalade': {
-          name: 'Escalade',
-          count: 1,
-          avgGrade: '12.67',
-          members: [
-            { id: 0, nom: 'Le Pannerer', prenom: 'Ambroise', classe: 'TA', avgGrade: '12.67' }
-          ],
-          preferences: { 'Menu B': 1 }
-        },
-        'demi-fond': {
-          name: 'Demi-fond',
-          count: 1,
-          avgGrade: '14.00',
-          members: [
-            { id: 1, nom: 'dsq', prenom: 'dqs', classe: 'TC', avgGrade: '14.00' }
-          ],
-          preferences: { 'Menu B': 1 }
-        }
-      }
-    };
-    currentData = demoData;
+// Modal controls
+modalClose.addEventListener('click', () => notesModal.classList.add('hidden'));
+notesModal.addEventListener('click', (e) => {
+  if (e.target === notesModal) {
+    notesModal.classList.add('hidden');
+  }
+});
+
+// Charger les données démo du serveur (140 étudiants)
+async function loadDemoDataFromServer() {
+  loadingMessage.classList.remove('hidden');
+  errorSection.classList.add('hidden');
+
+  const maxStudents = maxStudentsInput.value;
+  const url = '/api/demo-load' + (maxStudents ? `?maxStudents=${maxStudents}` : '');
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Erreur lors du chargement des données');
+    }
+
+    currentData = await response.json();
     displayResults();
-  });
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    loadingMessage.classList.add('hidden');
+  }
+}
+
+// Si mode démo avec données serveur
+if (window.location.search === '?demo-data') {
+  window.addEventListener('load', loadDemoDataFromServer);
 }

@@ -16,6 +16,12 @@
     <main>
       <section class="upload-section">
         <h2>1. Charger votre fichier Excel</h2>
+
+        <div class="settings">
+          <label for="maxStudents">Max étudiants par groupe:</label>
+          <input type="number" id="maxStudents" min="1" placeholder="Sans limite" class="input-max-students">
+        </div>
+
         <div class="upload-area" id="uploadArea">
           <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
           <p>📁 Glissez-déposez votre fichier Excel ici</p>
@@ -62,6 +68,28 @@
     <footer>
       <p>Équilibreur de Groupes EPS • 2024</p>
     </footer>
+  </div>
+
+  <!-- Modal pour afficher les notes -->
+  <div id="notesModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2 id="modalTitle">Notes de l'étudiant</h2>
+      <div class="notes-detail">
+        <div class="note-row">
+          <span class="note-label">📊 T1 (Trimestre 1):</span>
+          <span class="note-value" id="note1Value">-</span>
+        </div>
+        <div class="note-row">
+          <span class="note-label">📊 T2 (Trimestre 2):</span>
+          <span class="note-value" id="note2Value">-</span>
+        </div>
+        <div class="note-row">
+          <span class="note-label">📊 T3 (Trimestre 3):</span>
+          <span class="note-value" id="note3Value">-</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

@@ -17,6 +17,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
 
+    const maxStudents = req.body.maxStudents ? parseInt(req.body.maxStudents) : null;
+
     const workbook = xlsx.read(req.file.buffer);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -54,7 +56,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: 'Aucun étudiant trouvé avec des choix de menus' });
     }
 
-    const groups = createBalancedGroups(students);
+    const groups = createBalancedGroups(students, maxStudents);
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);
@@ -70,6 +72,8 @@ function extractNumber(str) {
 
 app.get('/api/demo-load', (req, res) => {
   try {
+    const maxStudents = req.query.maxStudents ? parseInt(req.query.maxStudents) : null;
+
     const filePath = './Choix des menus EPS – Terminale (1-2).xlsx';
     const fileBuffer = fs.readFileSync(filePath);
     const workbook = xlsx.read(fileBuffer);
@@ -104,7 +108,7 @@ app.get('/api/demo-load', (req, res) => {
       };
     }).filter(s => s !== null);
 
-    const groups = createBalancedGroups(students);
+    const groups = createBalancedGroups(students, maxStudents);
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);
