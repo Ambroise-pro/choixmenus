@@ -170,8 +170,9 @@ function createGroupCard(groupKey, groupData) {
   groupData.members.forEach(member => {
     const memberEl = document.createElement('div');
     memberEl.className = 'member';
+    const chosenOrderText = member.chosenMenuOrder === 1 ? '1ère préférence' : `${member.chosenMenuOrder}ème choix`;
     memberEl.innerHTML = `
-      <div class="member-name">${member.prenom} ${member.nom}</div>
+      <div class="member-name">${member.prenom} ${member.nom} <span style="color: #667eea; font-size: 0.85em; font-weight: 500;">(${chosenOrderText})</span></div>
       <div class="member-info">${member.classe}</div>
     `;
     memberEl.addEventListener('click', () => showNotesModal(member));
@@ -199,6 +200,23 @@ function showNotesModal(member) {
   document.getElementById('note1Value').textContent = member.note1;
   document.getElementById('note2Value').textContent = member.note2;
   document.getElementById('note3Value').textContent = member.note3;
+
+  // Afficher les préférences
+  const preferencesList = document.getElementById('preferencesList');
+  preferencesList.innerHTML = '';
+
+  if (member.allMenus && Array.isArray(member.allMenus)) {
+    member.allMenus.forEach(menu => {
+      const prefEl = document.createElement('div');
+      prefEl.className = `preference-choice ${menu.order === member.chosenMenuOrder ? 'chosen' : ''}`;
+      const orderText = menu.order === 1 ? '1ère' : `${menu.order}ème`;
+      prefEl.innerHTML = `
+        <span class="preference-order">${orderText} choix:</span> Menu ${menu.letter}
+      `;
+      preferencesList.appendChild(prefEl);
+    });
+  }
+
   notesModal.classList.remove('hidden');
 }
 

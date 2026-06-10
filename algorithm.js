@@ -37,7 +37,9 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
         classe: m.classe,
         note1: m.note1,
         note2: m.note2,
-        note3: m.note3
+        note3: m.note3,
+        chosenMenuOrder: m.menus[0].order,
+        allMenus: m.menus
       })),
       count: studentsInMenu.length,
       preferences: getPreferencesDistribution(studentsInMenu)
