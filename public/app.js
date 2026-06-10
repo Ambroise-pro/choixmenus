@@ -3,6 +3,8 @@ let currentData = null;
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
 const loadingMessage = document.getElementById('loadingMessage');
+const groupsLoadingMessage = document.getElementById('groupsLoadingMessage');
+const configSection = document.getElementById('configSection');
 const resultsSection = document.getElementById('resultsSection');
 const errorSection = document.getElementById('errorSection');
 const errorMessage = document.getElementById('errorMessage');
@@ -10,8 +12,11 @@ const groupsContainer = document.getElementById('groupsContainer');
 const exportBtn = document.getElementById('exportBtn');
 const newFileBtn = document.getElementById('newFileBtn');
 const maxStudentsInput = document.getElementById('maxStudents');
+const createGroupsBtn = document.getElementById('createGroupsBtn');
 const notesModal = document.getElementById('notesModal');
 const modalClose = document.querySelector('.modal-close');
+
+let uploadedFile = null;
 
 // Drag and drop
 uploadArea.addEventListener('dragover', (e) => {
@@ -48,9 +53,32 @@ async function handleFile(file) {
 
   loadingMessage.classList.remove('hidden');
   errorSection.classList.add('hidden');
+  configSection.classList.add('hidden');
+
+  uploadedFile = file;
+
+  try {
+    loadingMessage.textContent = '✅ Fichier chargé ! Configurez les groupes ci-dessous.';
+    configSection.classList.remove('hidden');
+    maxStudentsInput.focus();
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    loadingMessage.classList.add('hidden');
+  }
+}
+
+async function createGroups() {
+  if (!uploadedFile) {
+    showError('Veuillez d\'abord charger un fichier');
+    return;
+  }
+
+  groupsLoadingMessage.classList.remove('hidden');
+  errorSection.classList.add('hidden');
 
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', uploadedFile);
 
   const maxStudents = maxStudentsInput.value;
   if (maxStudents) {
@@ -70,10 +98,11 @@ async function handleFile(file) {
 
     currentData = await response.json();
     displayResults();
+    configSection.classList.add('hidden');
   } catch (error) {
     showError(error.message);
   } finally {
-    loadingMessage.classList.add('hidden');
+    groupsLoadingMessage.classList.add('hidden');
   }
 }
 
@@ -207,11 +236,16 @@ exportBtn.addEventListener('click', async () => {
 
 newFileBtn.addEventListener('click', () => {
   fileInput.value = '';
+  uploadedFile = null;
   currentData = null;
+  maxStudentsInput.value = '';
   resultsSection.classList.add('hidden');
   errorSection.classList.add('hidden');
+  configSection.classList.add('hidden');
   groupsContainer.innerHTML = '';
 });
+
+createGroupsBtn.addEventListener('click', createGroups);
 
 // Charger les données démo du serveur (140 étudiants)
 async function loadDemoDataFromServer() {

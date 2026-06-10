@@ -17,18 +17,28 @@
       <section class="upload-section">
         <h2>1. Charger votre fichier Excel</h2>
 
-        <div class="settings">
-          <label for="maxStudents">Max étudiants par groupe:</label>
-          <input type="number" id="maxStudents" min="1" placeholder="Sans limite" class="input-max-students">
-        </div>
-
         <div class="upload-area" id="uploadArea">
           <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
           <p>📁 Glissez-déposez votre fichier Excel ici</p>
           <p class="small">ou cliquez pour sélectionner</p>
         </div>
         <div id="loadingMessage" class="loading hidden">
-          Traitement en cours...
+          Chargement en cours...
+        </div>
+
+        <div id="configSection" class="config-section hidden">
+          <h2>2. Configurer les groupes</h2>
+          <div class="settings">
+            <label for="maxStudents">Max étudiants par groupe:</label>
+            <input type="number" id="maxStudents" min="1" placeholder="Sans limite" class="input-max-students">
+          </div>
+          <button id="createGroupsBtn" class="btn-primary btn-large">
+            🎯 Faire les groupes
+          </button>
+        </div>
+
+        <div id="groupsLoadingMessage" class="loading hidden">
+          Création des groupes...
         </div>
       </section>
 

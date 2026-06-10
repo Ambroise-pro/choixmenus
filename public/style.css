@@ -57,14 +57,24 @@ section h2 {
   margin-bottom: 30px;
 }
 
-.settings {
-  margin-bottom: 20px;
-  padding: 15px;
+.config-section {
+  margin-top: 30px;
+  padding: 20px;
   background: #f8f9ff;
   border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.config-section.hidden {
+  display: none;
+}
+
+.settings {
+  margin-bottom: 20px;
   display: flex;
-  gap: 10px;
+  gap: 15px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .settings label {
@@ -73,12 +83,11 @@ section h2 {
 }
 
 .input-max-students {
-  flex: 1;
-  max-width: 150px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   border: 2px solid #667eea;
   border-radius: 6px;
   font-size: 1em;
+  min-width: 150px;
   transition: border-color 0.3s;
 }
 
@@ -86,6 +95,12 @@ section h2 {
   outline: none;
   border-color: #764ba2;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.btn-large {
+  padding: 14px 32px;
+  font-size: 1.05em;
+  min-width: 200px;
 }
 
 .upload-area {

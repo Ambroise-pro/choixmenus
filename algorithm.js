@@ -13,9 +13,10 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   const groupsResult = {};
 
   Object.entries(groupedByMenu).forEach(([menuLetter, studentsInMenu]) => {
-    // Vérifier la limite max
+    // Vérifier la limite max - si elle est dépassée, ne pas créer le groupe
     if (maxStudentsPerGroup && studentsInMenu.length > maxStudentsPerGroup) {
-      return; // Skip ce groupe si dépassement
+      console.log(`Groupe Menu ${menuLetter} ignoré (${studentsInMenu.length} > ${maxStudentsPerGroup})`);
+      return;
     }
 
     // Récupérer les 3 activités du menu
