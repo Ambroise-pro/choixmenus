@@ -187,3 +187,37 @@ newFileBtn.addEventListener('click', () => {
   errorSection.classList.add('hidden');
   groupsContainer.innerHTML = '';
 });
+
+// Demo mode (load sample data for testing)
+if (window.location.search === '?demo') {
+  window.addEventListener('load', () => {
+    const demoData = {
+      students: [
+        { id: 0, nom: 'Le Pannerer', prenom: 'Ambroise', classe: 'TA', menus: [], note1: 12, note2: 12, note3: 14 },
+        { id: 1, nom: 'dsq', prenom: 'dqs', classe: 'TC', menus: [], note1: 13, note2: 12, note3: 17 }
+      ],
+      groups: {
+        'escalade': {
+          name: 'Escalade',
+          count: 1,
+          avgGrade: '12.67',
+          members: [
+            { id: 0, nom: 'Le Pannerer', prenom: 'Ambroise', classe: 'TA', avgGrade: '12.67' }
+          ],
+          preferences: { 'Menu B': 1 }
+        },
+        'demi-fond': {
+          name: 'Demi-fond',
+          count: 1,
+          avgGrade: '14.00',
+          members: [
+            { id: 1, nom: 'dsq', prenom: 'dqs', classe: 'TC', avgGrade: '14.00' }
+          ],
+          preferences: { 'Menu B': 1 }
+        }
+      }
+    };
+    currentData = demoData;
+    displayResults();
+  });
+}
