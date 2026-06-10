@@ -40,15 +40,22 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       const menus = parseMenuChoices(row[menusCol] || '');
       if (menus.length === 0) return null;
 
+      const note1Data = parseNoteWithActivity(row[note1Col]);
+      const note2Data = parseNoteWithActivity(row[note2Col]);
+      const note3Data = parseNoteWithActivity(row[note3Col]);
+
       return {
         id: index,
         nom: (row[nomCol] || '').trim(),
         prenom: (row[prenomCol] || '').trim(),
         classe: (row[classeCol] || '').trim(),
         menus,
-        note1: extractNumber(row[note1Col]),
-        note2: extractNumber(row[note2Col]),
-        note3: extractNumber(row[note3Col])
+        note1: note1Data.note,
+        note1Activity: note1Data.activity,
+        note2: note2Data.note,
+        note2Activity: note2Data.activity,
+        note3: note3Data.note,
+        note3Activity: note3Data.activity
       };
     }).filter(s => s !== null);
 
@@ -68,6 +75,27 @@ function extractNumber(str) {
   if (!str) return 0;
   const match = String(str).match(/[\d.]+/);
   return match ? parseFloat(match[0]) : 0;
+}
+
+function parseNoteWithActivity(str) {
+  if (!str) return { activity: '', note: 0 };
+  const str_trimmed = String(str).trim();
+  const match = str_trimmed.match(/^(.+?)\s+([\d.]+)$/);
+  if (match) {
+    return {
+      activity: match[1].trim(),
+      note: parseFloat(match[2])
+    };
+  }
+  // Si pas de format "Activité Nombre", essayer juste un nombre
+  const numMatch = str_trimmed.match(/[\d.]+/);
+  if (numMatch) {
+    return {
+      activity: '',
+      note: parseFloat(numMatch[0])
+    };
+  }
+  return { activity: '', note: 0 };
 }
 
 app.get('/api/demo-load', (req, res) => {
@@ -96,15 +124,22 @@ app.get('/api/demo-load', (req, res) => {
       const menus = parseMenuChoices(row[menusCol] || '');
       if (menus.length === 0) return null;
 
+      const note1Data = parseNoteWithActivity(row[note1Col]);
+      const note2Data = parseNoteWithActivity(row[note2Col]);
+      const note3Data = parseNoteWithActivity(row[note3Col]);
+
       return {
         id: index,
         nom: (row[nomCol] || '').trim(),
         prenom: (row[prenomCol] || '').trim(),
         classe: (row[classeCol] || '').trim(),
         menus,
-        note1: extractNumber(row[note1Col]),
-        note2: extractNumber(row[note2Col]),
-        note3: extractNumber(row[note3Col])
+        note1: note1Data.note,
+        note1Activity: note1Data.activity,
+        note2: note2Data.note,
+        note2Activity: note2Data.activity,
+        note3: note3Data.note,
+        note3Activity: note3Data.activity
       };
     }).filter(s => s !== null);
 

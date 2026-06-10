@@ -197,9 +197,15 @@ function createGroupCard(groupKey, groupData) {
 
 function showNotesModal(member) {
   document.getElementById('modalTitle').textContent = `Notes de ${member.prenom} ${member.nom}`;
-  document.getElementById('note1Value').textContent = member.note1;
-  document.getElementById('note2Value').textContent = member.note2;
-  document.getElementById('note3Value').textContent = member.note3;
+
+  const formatNote = (note, activity) => {
+    if (!activity) return note;
+    return `${activity} ${note}`;
+  };
+
+  document.getElementById('note1Value').textContent = formatNote(member.note1, member.note1Activity);
+  document.getElementById('note2Value').textContent = formatNote(member.note2, member.note2Activity);
+  document.getElementById('note3Value').textContent = formatNote(member.note3, member.note3Activity);
 
   // Afficher les préférences
   const preferencesList = document.getElementById('preferencesList');

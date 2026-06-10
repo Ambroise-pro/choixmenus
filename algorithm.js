@@ -83,8 +83,11 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
           nom: m.nom,
           classe: m.classe,
           note1: m.note1,
+          note1Activity: m.note1Activity || '',
           note2: m.note2,
+          note2Activity: m.note2Activity || '',
           note3: m.note3,
+          note3Activity: m.note3Activity || '',
           chosenMenuOrder: assignedMenuOrder,
           allMenus: m.menus
         };
