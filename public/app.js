@@ -227,13 +227,9 @@ function showNotesModal(member) {
     });
   }
 
-  // Afficher/masquer le bouton justification selon si l'étudiant a été rebasculé
+  // Afficher le bouton justification pour TOUS
   const justBtn = document.getElementById('showJustificationBtn');
-  if (member.rebasculage && member.rebasculage.wasRebasculé) {
-    justBtn.style.display = 'block';
-  } else {
-    justBtn.style.display = 'none';
-  }
+  justBtn.style.display = 'block';
 
   notesModal.classList.remove('hidden');
 }
@@ -312,13 +308,9 @@ if (window.location.search === '?demo-data') {
 
 function showJustificationModal(member) {
   const rebasculage = member.rebasculage;
-  if (!rebasculage || !rebasculage.wasRebasculé) {
-    return;
-  }
 
   document.getElementById('justificationTitle').textContent = `Justification - ${member.prenom} ${member.nom}`;
 
-  const reason = rebasculage.reason;
   const menuActivities = {
     'A': ['Demi-fond', 'Escalade', 'Badminton'],
     'B': ['Escalade', 'Volley-ball', 'Demi-fond'],
@@ -327,69 +319,119 @@ function showJustificationModal(member) {
     'E': ['Foot', 'Musculation', 'Demi-fond']
   };
 
-  const fromActivities = menuActivities[reason.fromMenu] || [];
-  const toActivities = menuActivities[reason.toMenu] || [];
+  let html = '';
 
-  const commonActivities = fromActivities.filter(a =>
-    toActivities.some(b => a.toLowerCase() === b.toLowerCase())
-  );
+  if (rebasculage && rebasculage.wasRebasculé) {
+    // Cas 1 : Étudiant rebasculé
+    const reason = rebasculage.reason;
+    const fromActivities = menuActivities[reason.fromMenu] || [];
+    const toActivities = menuActivities[reason.toMenu] || [];
+    const commonActivities = fromActivities.filter(a =>
+      toActivities.some(b => a.toLowerCase() === b.toLowerCase())
+    );
 
-  let html = `
-    <div class="justification-section">
-      <h3>📌 Votre situation</h3>
-      <div class="justification-item">
-        <strong>Classe :</strong> ${member.classe}<br>
-        <strong>1ère choix :</strong> Menu ${reason.fromMenu}<br>
-        <strong>Placement final :</strong> Menu ${reason.toMenu}
-        <span class="status-badge status-rebasculé">Rebasculé</span>
+    html = `
+      <div class="justification-section">
+        <h3>📌 Votre situation</h3>
+        <div class="justification-item">
+          <strong>Classe :</strong> ${member.classe}<br>
+          <strong>1ère choix :</strong> Menu ${reason.fromMenu}<br>
+          <strong>Placement final :</strong> Menu ${reason.toMenu}
+          <span class="status-badge status-rebasculé">Rebasculé</span>
+        </div>
       </div>
-    </div>
 
-    <div class="justification-section">
-      <h3>🔴 Pourquoi ce rebasculage ?</h3>
-      <div class="justification-item">
-        Le Menu ${reason.fromMenu} a reçu <strong>${reason.surplusDemand} demandes</strong> pour <strong>${reason.targetSize} places</strong>.
-        <br><br>
-        <strong>Surplus :</strong> ${reason.surplusDemand - reason.targetSize} étudiant(s) à rebasculer
+      <div class="justification-section">
+        <h3>🔴 Pourquoi ce rebasculage ?</h3>
+        <div class="justification-item">
+          Le Menu ${reason.fromMenu} a reçu <strong>${reason.surplusDemand} demandes</strong> pour <strong>${reason.targetSize} places</strong>.
+          <br><br>
+          <strong>Surplus :</strong> ${reason.surplusDemand - reason.targetSize} étudiant(s) à rebasculer
+        </div>
       </div>
-    </div>
 
-    <div class="justification-section">
-      <h3>✅ Analyse de votre cas</h3>
-      <div class="justification-item highlight">
-        <strong>Compatibilité avec Menu ${reason.toMenu} :</strong><br><br>
-        Activités conservées : <span class="compatibility-score">${commonActivities.length}/3 = ${reason.compatibilityPercent}%</span>
+      <div class="justification-section">
+        <h3>✅ Analyse de votre cas</h3>
+        <div class="justification-item highlight">
+          <strong>Compatibilité avec Menu ${reason.toMenu} :</strong><br><br>
+          Activités conservées : <span class="compatibility-score">${commonActivities.length}/3 = ${reason.compatibilityPercent}%</span>
+        </div>
+        <div style="padding: 12px; font-size: 0.9em; color: #555;">
+          ${commonActivities.map(a => `✓ ${a} (conservé)`).join('<br>')}
+          ${toActivities.filter(a => !commonActivities.some(b => a.toLowerCase() === b.toLowerCase())).map((a, i) => {
+            const replaced = fromActivities[i];
+            return `<br>↔ ${replaced} → ${a} (changement)`;
+          }).join('')}
+        </div>
       </div>
-      <div style="padding: 12px; font-size: 0.9em; color: #555;">
-        ${commonActivities.map(a => `✓ ${a} (conservé)`).join('<br>')}
-        ${toActivities.filter(a => !commonActivities.some(b => a.toLowerCase() === b.toLowerCase())).map((a, i) => {
-          const replaced = fromActivities[i];
-          return `<br>↔ ${replaced} → ${a} (changement)`;
-        }).join('')}
-      </div>
-    </div>
 
-    <div class="justification-section">
-      <h3>📋 Pourquoi Menu ${reason.toMenu} ?</h3>
-      <div class="justification-item">
-        Vous avez ${reason.compatibilityPercent}% de vos activités préférées conservées.
-        <br><br>
-        C'est le meilleur compromis possible pour :
-        <br>✓ Respecter votre 2ème choix
-        <br>✓ Garder un maximum de vos activités préférées
-        <br>✓ Équilibrer tous les groupes (${reason.targetSize} étudiants par menu)
+      <div class="justification-section">
+        <h3>📋 Pourquoi Menu ${reason.toMenu} ?</h3>
+        <div class="justification-item">
+          Vous avez ${reason.compatibilityPercent}% de vos activités préférées conservées.
+          <br><br>
+          C'est le meilleur compromis possible pour :
+          <br>✓ Respecter votre 2ème choix
+          <br>✓ Garder un maximum de vos activités préférées
+          <br>✓ Équilibrer tous les groupes (${reason.targetSize} étudiants par menu)
+        </div>
       </div>
-    </div>
 
-    <div class="justification-section">
-      <h3>🎯 Résultat final</h3>
-      <div class="justification-item">
-        <strong>Menu affecté :</strong> ${reason.toMenu}<br>
-        <strong>Activités :</strong> ${toActivities.join(' + ')}<br>
-        <strong>Groupe :</strong> 28 étudiants
+      <div class="justification-section">
+        <h3>🎯 Résultat final</h3>
+        <div class="justification-item">
+          <strong>Menu affecté :</strong> ${reason.toMenu}<br>
+          <strong>Activités :</strong> ${toActivities.join(' + ')}<br>
+          <strong>Groupe :</strong> 28 étudiants
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } else {
+    // Cas 2 : Étudiant à sa 1ère préférence
+    const finalMenuLetter = member.allMenus[member.chosenMenuOrder - 1]?.letter;
+    const finalActivities = menuActivities[finalMenuLetter] || [];
+
+    html = `
+      <div class="justification-section">
+        <h3>📌 Votre situation</h3>
+        <div class="justification-item">
+          <strong>Classe :</strong> ${member.classe}<br>
+          <strong>1ère choix :</strong> Menu ${finalMenuLetter}<br>
+          <strong>Placement final :</strong> Menu ${finalMenuLetter}
+          <span class="status-badge status-ok">Accepté ✓</span>
+        </div>
+      </div>
+
+      <div class="justification-section">
+        <h3>✅ Excellentes nouvelles !</h3>
+        <div class="justification-item highlight">
+          <strong>Vous avez obtenu votre 1ère choix ! 🎉</strong><br><br>
+          Menu ${finalMenuLetter} avait suffisamment de places pour vous.
+          Vous pouvez faire les activités que vous aviez demandées en priorité.
+        </div>
+      </div>
+
+      <div class="justification-section">
+        <h3>🎯 Vos activités</h3>
+        <div class="justification-item">
+          <strong>Menu :</strong> ${finalMenuLetter}<br>
+          <strong>Activités :</strong> ${finalActivities.join(' + ')}<br>
+          <strong>Groupe :</strong> 28 étudiants
+        </div>
+      </div>
+
+      <div class="justification-section">
+        <h3>📊 Comment ça a marché</h3>
+        <div class="justification-item">
+          ✓ Votre 1ère préférence avait de la place<br>
+          ✓ L'algorithme a pu respecter votre choix<br>
+          ✓ Les groupes restent équilibrés (28 étudiants par menu)<br>
+          <br>
+          <strong>Résultat :</strong> Vous êtes exactement où vous le souhaitiez !
+        </div>
+      </div>
+    `;
+  }
 
   document.getElementById('justificationContent').innerHTML = html;
   notesModal.classList.add('hidden');
