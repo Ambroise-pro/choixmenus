@@ -5,7 +5,14 @@
       "Bash(python3)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m 'Initial commit: create balanced groups app *)"
+      "Bash(git commit -m 'Initial commit: create balanced groups app *)",
+      "Bash(npm install *)",
+      "Bash(sudo chown -R 501:20 \"/Users/boulot/.npm\")",
+      "Bash(npm config *)",
+      "Bash(npm start *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pkill -f \"node.*server.js\")",
+      "Bash(curl -s http://localhost:3000/)"
     ]
   }
 }

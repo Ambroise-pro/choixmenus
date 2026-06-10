@@ -22,16 +22,33 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     const worksheet = workbook.Sheets[sheetName];
     const data = xlsx.utils.sheet_to_json(worksheet);
 
-    const students = data.map((row, index) => ({
-      id: index,
-      nom: row['Prénom ']?.trim() || '',
-      prenom: row['Nom']?.trim() || '',
-      classe: row['Classe ']?.trim() || '',
-      menus: parseMenuChoices(row['Classe les 5 menus obligatoires par ordre de préférence.'] || ''),
-      note1: parseFloat(row['Note au premier trimestre']) || 0,
-      note2: parseFloat(row['Note au deuxième trimestre']) || 0,
-      note3: parseFloat(row['Note au troisième trimestre']) || 0
-    })).filter(s => s.menus.length > 0);
+    // Trouver les colonnes correctes (avec espaces insécables possibles)
+    const headers = Object.keys(data[0] || {});
+    const findColumn = (pattern) => headers.find(h => h.includes(pattern));
+
+    const prenomCol = findColumn('Prénom') || 'Prénom ';
+    const nomCol = findColumn('Nom') || 'Nom';
+    const classeCol = findColumn('Classe') && !findColumn('Classe').includes('menus') ? findColumn('Classe') : 'Classe ';
+    const menusCol = findColumn('menus') || 'Classe les 5 menus obligatoires par ordre de préférence.';
+    const note1Col = findColumn('premier trimestre') || 'Note au premier trimestre';
+    const note2Col = findColumn('deuxième trimestre') || 'Note au deuxième trimestre';
+    const note3Col = findColumn('troisième trimestre') || 'Note au troisième trimestre';
+
+    const students = data.map((row, index) => {
+      const menus = parseMenuChoices(row[menusCol] || '');
+      if (menus.length === 0) return null;
+
+      return {
+        id: index,
+        nom: (row[nomCol] || '').trim(),
+        prenom: (row[prenomCol] || '').trim(),
+        classe: (row[classeCol] || '').trim(),
+        menus,
+        note1: extractNumber(row[note1Col]),
+        note2: extractNumber(row[note2Col]),
+        note3: extractNumber(row[note3Col])
+      };
+    }).filter(s => s !== null);
 
     if (students.length === 0) {
       return res.status(400).json({ error: 'Aucun étudiant trouvé avec des choix de menus' });
@@ -44,6 +61,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+function extractNumber(str) {
+  if (!str) return 0;
+  const match = String(str).match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : 0;
+}
 
 app.post('/api/export', (req, res) => {
   try {
