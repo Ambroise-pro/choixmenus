@@ -37,14 +37,18 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
   const groupsResult = {};
   const rebasculageMap = {}; // Tracker les rebasculages
 
-  // Définir les activités de chaque menu
-  const menuActivitiesList = {
-    'A': ['demi-fond', 'escalade', 'badminton'],
-    'B': ['escalade', 'volley-ball', 'demi-fond'],
-    'C': ['danse', 'natation', 'step'],
-    'D': ['volley-ball', 'danse', 'natation'],
-    'E': ['foot', 'musculation', 'demi-fond']
-  };
+  // Extraire les activités réelles de chaque menu depuis les données des étudiants
+  const menuActivitiesList = {};
+  menus.forEach(letter => {
+    const activities = new Set();
+    students.forEach(student => {
+      const menu = student.menus.find(m => m.letter === letter);
+      if (menu && menu.activities) {
+        menu.activities.forEach(activity => activities.add(activity.toLowerCase()));
+      }
+    });
+    menuActivitiesList[letter] = Array.from(activities).sort();
+  });
 
   // Initialiser les groupes vides
   menus.forEach(letter => {
