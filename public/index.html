@@ -29,6 +29,13 @@
         <div id="configSection" class="config-section hidden">
           <h2>2. Configurer les groupes</h2>
           <div class="settings">
+            <label for="numMenus">Nombre de menus/groupes:</label>
+            <input type="number" id="numMenus" min="1" max="5" placeholder="Auto-détection" class="input-max-students">
+            <span style="font-size: 0.9em; color: #666; margin-left: 10px;">
+              (Laissez vide pour auto-détection, ou spécifiez 4 pour 4 groupes)
+            </span>
+          </div>
+          <div class="settings">
             <label for="maxStudents">Max étudiants par groupe:</label>
             <input type="number" id="maxStudents" min="1" placeholder="Sans limite" class="input-max-students">
           </div>

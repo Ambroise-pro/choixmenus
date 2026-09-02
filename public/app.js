@@ -84,6 +84,11 @@ async function createGroups() {
   const formData = new FormData();
   formData.append('file', uploadedFile);
 
+  const numMenus = document.getElementById('numMenus').value;
+  if (numMenus) {
+    formData.append('numMenus', numMenus);
+  }
+
   const maxStudents = maxStudentsInput.value;
   if (maxStudents) {
     formData.append('maxStudents', maxStudents);

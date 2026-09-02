@@ -18,6 +18,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     }
 
     const maxStudents = req.body.maxStudents ? parseInt(req.body.maxStudents) : null;
+    const numMenus = req.body.numMenus ? parseInt(req.body.numMenus) : null;
 
     const workbook = xlsx.read(req.file.buffer);
     const sheetName = workbook.SheetNames[0];
@@ -63,7 +64,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       return res.status(400).json({ error: 'Aucun étudiant trouvé avec des choix de menus' });
     }
 
-    const groups = createBalancedGroups(students, maxStudents);
+    const groups = createBalancedGroups(students, maxStudents, numMenus);
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);
@@ -148,7 +149,7 @@ app.get('/api/demo-load', (req, res) => {
       };
     }).filter(s => s !== null);
 
-    const groups = createBalancedGroups(students, maxStudents);
+    const groups = createBalancedGroups(students, maxStudents, numMenus);
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);

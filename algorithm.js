@@ -1,17 +1,25 @@
-function createBalancedGroups(students, maxStudentsPerGroup = null) {
-  // Déterminer dynamiquement les menus présents dans les données
-  const menuLetters = new Set();
-  students.forEach(student => {
-    if (student.menus && Array.isArray(student.menus)) {
-      student.menus.forEach(menu => {
-        if (menu.letter) {
-          menuLetters.add(menu.letter);
-        }
-      });
-    }
-  });
+function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = null) {
+  // Déterminer les menus: soit utiliser numMenus si fourni, soit détecter dynamiquement
+  let menus;
 
-  const menus = Array.from(menuLetters).sort(); // Tri alphabétique
+  if (numMenus) {
+    // Utiliser les premiers N menus (A, B, C, D, E)
+    const allMenuLetters = ['A', 'B', 'C', 'D', 'E'];
+    menus = allMenuLetters.slice(0, numMenus);
+  } else {
+    // Déterminer dynamiquement les menus présents dans les données
+    const menuLetters = new Set();
+    students.forEach(student => {
+      if (student.menus && Array.isArray(student.menus)) {
+        student.menus.forEach(menu => {
+          if (menu.letter) {
+            menuLetters.add(menu.letter);
+          }
+        });
+      }
+    });
+    menus = Array.from(menuLetters).sort(); // Tri alphabétique
+  }
   const totalStudents = students.length;
   const totalCapacity = maxStudentsPerGroup ? menus.length * maxStudentsPerGroup : totalStudents;
 
