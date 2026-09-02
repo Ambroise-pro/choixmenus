@@ -122,6 +122,9 @@ function displayResults() {
     : 0;
   document.getElementById('avgGroupSize').textContent = avgSize;
 
+  // Afficher les statistiques brutes
+  displayRawStats(students);
+
   // Afficher les groupes (par menu)
   groupsContainer.innerHTML = '';
   Object.entries(groups)
@@ -139,6 +142,68 @@ function displayResults() {
   // Afficher les résultats, cacher les erreurs
   resultsSection.classList.remove('hidden');
   errorSection.classList.add('hidden');
+}
+
+function displayRawStats(students) {
+  // Compter les choix par menu et par ordre de préférence
+  const stats = {};
+  const menus = ['A', 'B', 'C', 'D', 'E'];
+
+  // Initialiser la structure
+  menus.forEach(menu => {
+    stats[menu] = {};
+    for (let i = 1; i <= 5; i++) {
+      stats[menu][i] = 0;
+    }
+  });
+
+  // Compter les choix
+  students.forEach(student => {
+    if (student.menus && Array.isArray(student.menus)) {
+      student.menus.forEach(menu => {
+        const letter = menu.letter;
+        const order = menu.order;
+        if (stats[letter] !== undefined) {
+          stats[letter][order]++;
+        }
+      });
+    }
+  });
+
+  // Créer le tableau HTML
+  const table = document.createElement('table');
+  table.className = 'stats-table';
+
+  // En-tête
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  headerRow.innerHTML = '<th>Menu</th><th>1ère Choix</th><th>2ème Choix</th><th>3ème Choix</th><th>4ème Choix</th><th>5ème Choix</th><th>Total</th>';
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Corps du tableau
+  const tbody = document.createElement('tbody');
+  menus.forEach(menu => {
+    const row = document.createElement('tr');
+    let total = 0;
+
+    let html = `<td class="menu-label">Menu ${menu}</td>`;
+    for (let i = 1; i <= 5; i++) {
+      const count = stats[menu][i] || 0;
+      total += count;
+      html += `<td><span class="choice-count">${count}</span></td>`;
+    }
+    html += `<td style="font-weight: 600; color: #667eea;">${total}</td>`;
+
+    row.innerHTML = html;
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+
+  const rawStatsTable = document.getElementById('rawStatsTable');
+  rawStatsTable.innerHTML = '';
+  rawStatsTable.appendChild(table);
 }
 
 function createGroupCard(groupKey, groupData) {
