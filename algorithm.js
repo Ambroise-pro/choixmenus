@@ -55,109 +55,73 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
     };
   });
 
-  // Étape 1 : Assigner les étudiants par ordre de préférence
-  // Pour chaque rang de préférence (1er, 2ème, 3ème, etc.)
-  for (let preferenceRank = 0; preferenceRank < 5; preferenceRank++) {
-    students.forEach(student => {
-      // Si l'étudiant est déjà assigné, passer
-      if (rebasculageMap[student.id]) {
-        return;
-      }
+  // Étape 1 : Assigner les 1er choix
+  students.forEach(student => {
+    const menuAtRank = student.menus[0];
+    if (!menuAtRank) return;
+
+    const menuLetter = menuAtRank.letter;
+    const group = groupsResult[`menu-${menuLetter}`];
+
+    if (group && group.studentObjects.length < group.capacity) {
+      group.studentObjects.push({
+        student,
+        desiredMenu: menuLetter,
+        nextChoice: student.menus[1]?.letter || null,
+        preferenceRank: 1,
+        wasRebasculed: false
+      });
+
+      rebasculageMap[student.id] = {
+        studentId: student.id,
+        desiredMenu: menuLetter,
+        finalMenu: menuLetter,
+        preferenceRank: 1,
+        wasRebasculé: false,
+        reason: null,
+        compatibility: null
+      };
+    }
+  });
+
+  // Étape 1b : Identifier les étudiants rebasculés (n'ont pas eu leur 1er choix)
+  const rebasculedStudents = students.filter(s => !rebasculageMap[s.id]);
+  const assignedFromRank2OnlyRebasculed = new Set();
+
+  // Étape 2 : Assigner les 2ème choix des REBASCULÉS en priorité
+  for (let preferenceRank = 1; preferenceRank < 5; preferenceRank++) {
+    rebasculedStudents.forEach(student => {
+      if (assignedFromRank2OnlyRebasculed.has(student.id)) return;
 
       const menuAtRank = student.menus[preferenceRank];
-      if (!menuAtRank) return; // Pas de menu à ce rang
+      if (!menuAtRank) return;
 
       const menuLetter = menuAtRank.letter;
       const group = groupsResult[`menu-${menuLetter}`];
 
-      // Vérifier si la place est disponible
-      if (group && group.studentObjects.length < group.capacity) {
+      if (group) {
+        // Les rebasculés ont priorité, pas de limite de capacité pour eux
         group.studentObjects.push({
           student,
-          desiredMenu: menuLetter,
+          desiredMenu: student.menus[0].letter,
           nextChoice: student.menus[preferenceRank + 1]?.letter || null,
-          preferenceRank: preferenceRank + 1
+          preferenceRank: preferenceRank + 1,
+          wasRebasculed: true
         });
 
         rebasculageMap[student.id] = {
           studentId: student.id,
-          desiredMenu: menuLetter,
+          desiredMenu: student.menus[0].letter,
           finalMenu: menuLetter,
           preferenceRank: preferenceRank + 1,
-          wasRebasculé: preferenceRank > 0,
-          reason: preferenceRank > 0 ? `Accepté au choix ${preferenceRank + 1}` : null,
+          wasRebasculé: true,
+          reason: `Rebasculé au choix ${preferenceRank + 1} (priorité rebasculé)`,
           compatibility: null
         };
+
+        assignedFromRank2OnlyRebasculed.add(student.id);
       }
     });
-  }
-
-  // Étape 2 : Rééquilibrage basé sur la compatibilité des 2ème choix
-  // Rejeter les étudiants en 1ère choix qui ont 2+ activités en commun avec leur 2ème choix
-  for (let iteration = 0; iteration < 3; iteration++) {
-    let anyMovement = false;
-
-    menus.forEach(menuLetter => {
-      const group = groupsResult[`menu-${menuLetter}`];
-      if (group.studentObjects.length > group.capacity) {
-        const excess = group.studentObjects.length - group.capacity;
-
-        // Filtrer les étudiants de 1ère préférence avec un 2ème choix
-        const firstChoiceStudents = group.studentObjects
-          .filter(s => s.preferenceRank === 1 && s.nextChoice);
-
-        // Calculer la compatibilité avec le 2ème choix
-        const withCompatibility = firstChoiceStudents
-          .map(s => ({
-            ...s,
-            compatibility: countCommonActivities(menuLetter, s.nextChoice, menuActivitiesList)
-          }))
-          .sort((a, b) => b.compatibility - a.compatibility); // Plus compatible en premier
-
-        // Rejeter les plus compatibles (2+ activités en commun en priorité)
-        const toReject = withCompatibility
-          .filter(s => s.compatibility >= 2) // Prioriser 2+ activités communes
-          .slice(0, excess);
-
-        // Si pas assez, prendre aussi les moins compatibles
-        if (toReject.length < excess) {
-          const remaining = withCompatibility.filter(s => !toReject.includes(s));
-          toReject.push(...remaining.slice(0, excess - toReject.length));
-        }
-
-        if (toReject.length > 0) {
-          anyMovement = true;
-          const toRejectIds = new Set(toReject.map(t => t.student.id));
-          group.studentObjects = group.studentObjects.filter(s => !toRejectIds.has(s.student.id));
-
-          // Placer dans 2ème choix
-          toReject.forEach(rejected => {
-            const nextMenu = rejected.nextChoice;
-            const nextGroup = groupsResult[`menu-${nextMenu}`];
-            if (nextGroup) {
-              nextGroup.studentObjects.push({
-                student: rejected.student,
-                desiredMenu: nextMenu,
-                nextChoice: rejected.student.menus[2]?.letter || null,
-                preferenceRank: 2
-              });
-
-              rebasculageMap[rejected.student.id] = {
-                studentId: rejected.student.id,
-                desiredMenu: menuLetter,
-                finalMenu: nextMenu,
-                preferenceRank: 2,
-                wasRebasculé: true,
-                reason: `Rebasculé au 2ème choix (compatibilité: ${rejected.compatibility}/3 activités)`,
-                compatibility: rejected.compatibility
-              };
-            }
-          });
-        }
-      }
-    });
-
-    if (!anyMovement) break;
   }
 
   // Étape 3 : Gestion des étudiants non-assignés
