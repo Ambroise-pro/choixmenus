@@ -145,19 +145,22 @@ function displayResults() {
 }
 
 function displayRawStats(students) {
-  // Compter les choix par menu et par ordre de préférence
+  // Créer une structure pour stocker les étudiants par menu et ordre
+  const studentsByMenuAndOrder = {};
   const stats = {};
   const menus = ['A', 'B', 'C', 'D', 'E'];
 
   // Initialiser la structure
   menus.forEach(menu => {
     stats[menu] = {};
+    studentsByMenuAndOrder[menu] = {};
     for (let i = 1; i <= 5; i++) {
       stats[menu][i] = 0;
+      studentsByMenuAndOrder[menu][i] = [];
     }
   });
 
-  // Compter les choix
+  // Compter les choix et collecter les étudiants
   students.forEach(student => {
     if (student.menus && Array.isArray(student.menus)) {
       student.menus.forEach(menu => {
@@ -165,6 +168,11 @@ function displayRawStats(students) {
         const order = menu.order;
         if (stats[letter] !== undefined) {
           stats[letter][order]++;
+          studentsByMenuAndOrder[letter][order].push({
+            prenom: student.prenom,
+            nom: student.nom,
+            classe: student.classe
+          });
         }
       });
     }
@@ -187,15 +195,37 @@ function displayRawStats(students) {
     const row = document.createElement('tr');
     let total = 0;
 
-    let html = `<td class="menu-label">Menu ${menu}</td>`;
+    const menuLabelCell = document.createElement('td');
+    menuLabelCell.className = 'menu-label';
+    menuLabelCell.textContent = `Menu ${menu}`;
+    row.appendChild(menuLabelCell);
+
     for (let i = 1; i <= 5; i++) {
       const count = stats[menu][i] || 0;
       total += count;
-      html += `<td><span class="choice-count">${count}</span></td>`;
-    }
-    html += `<td style="font-weight: 600; color: #667eea;">${total}</td>`;
 
-    row.innerHTML = html;
+      const cell = document.createElement('td');
+      const span = document.createElement('span');
+      span.className = 'choice-count';
+      span.textContent = count;
+      span.style.cursor = count > 0 ? 'pointer' : 'default';
+
+      if (count > 0) {
+        span.addEventListener('click', () => {
+          showChoiceDetailsModal(menu, i, studentsByMenuAndOrder[menu][i]);
+        });
+      }
+
+      cell.appendChild(span);
+      row.appendChild(cell);
+    }
+
+    const totalCell = document.createElement('td');
+    totalCell.style.fontWeight = '600';
+    totalCell.style.color = '#667eea';
+    totalCell.textContent = total;
+    row.appendChild(totalCell);
+
     tbody.appendChild(row);
   });
 
@@ -204,6 +234,28 @@ function displayRawStats(students) {
   const rawStatsTable = document.getElementById('rawStatsTable');
   rawStatsTable.innerHTML = '';
   rawStatsTable.appendChild(table);
+}
+
+function showChoiceDetailsModal(menu, order, students) {
+  const choiceLabels = ['1ère préférence', '2ème choix', '3ème choix', '4ème choix', '5ème choix'];
+  const modal = document.getElementById('choiceDetailsModal');
+  const title = document.getElementById('choiceDetailsTitle');
+  const studentsList = document.getElementById('choiceDetailsStudentsList');
+
+  title.textContent = `Menu ${menu} - ${choiceLabels[order - 1]} (${students.length} étudiants)`;
+
+  studentsList.innerHTML = '';
+  students.forEach(student => {
+    const div = document.createElement('div');
+    div.className = 'student-item';
+    div.innerHTML = `
+      <div class="student-name">${student.prenom} ${student.nom}</div>
+      <div class="student-classe">${student.classe}</div>
+    `;
+    studentsList.appendChild(div);
+  });
+
+  modal.classList.remove('hidden');
 }
 
 function createGroupCard(groupKey, groupData) {
@@ -586,6 +638,7 @@ allModalCloses.forEach(close => {
     notesModal.classList.add('hidden');
     justificationModal.classList.add('hidden');
     document.getElementById('changeGroupModal').classList.add('hidden');
+    document.getElementById('choiceDetailsModal').classList.add('hidden');
   });
 });
 
@@ -600,6 +653,15 @@ justificationModal.addEventListener('click', (e) => {
     justificationModal.classList.add('hidden');
   }
 });
+
+const choiceDetailsModal = document.getElementById('choiceDetailsModal');
+if (choiceDetailsModal) {
+  choiceDetailsModal.addEventListener('click', (e) => {
+    if (e.target === choiceDetailsModal) {
+      choiceDetailsModal.classList.add('hidden');
+    }
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   const showJustBtn = document.getElementById('showJustificationBtn');

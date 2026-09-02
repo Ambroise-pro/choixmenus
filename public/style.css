@@ -690,6 +690,42 @@ section h2 {
   padding: 4px 8px;
 }
 
+/* Modal Choice Details */
+.modal-choice-details {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.students-list {
+  display: grid;
+  gap: 10px;
+}
+
+.student-item {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+}
+
+.student-item:hover {
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.student-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.student-classe {
+  font-size: 0.9em;
+  color: #666;
+}
+
 /* Footer */
 footer {
   text-align: center;
