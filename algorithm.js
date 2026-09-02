@@ -204,12 +204,8 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
       return;
     }
 
-    if (studentsInMenu.length === 0) {
-      return;
-    }
-
-    // Récupérer les activités du menu
-    const menuActivities = getMenuActivities(letter, studentsInMenu);
+    // Récupérer les activités du menu (vide si aucun étudiant)
+    const menuActivities = studentsInMenu.length > 0 ? getMenuActivities(letter, studentsInMenu) : [];
 
     finalResult[`menu-${letter}`] = {
       name: `Menu ${letter}`,

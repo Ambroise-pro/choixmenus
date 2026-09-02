@@ -20,6 +20,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     const maxStudents = req.body.maxStudents ? parseInt(req.body.maxStudents) : null;
     const numMenus = req.body.numMenus ? parseInt(req.body.numMenus) : null;
 
+    console.log('Debug - numMenus:', numMenus, 'maxStudents:', maxStudents, 'body:', req.body);
+
     const workbook = xlsx.read(req.file.buffer);
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
