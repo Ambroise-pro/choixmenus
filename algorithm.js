@@ -12,7 +12,20 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   });
 
   const menus = Array.from(menuLetters).sort(); // Tri alphabétique
-  const targetSize = Math.floor(students.length / menus.length);
+  const totalStudents = students.length;
+  const totalCapacity = maxStudentsPerGroup ? menus.length * maxStudentsPerGroup : totalStudents;
+
+  // Vérifier si la capacité est suffisante
+  if (maxStudentsPerGroup && totalCapacity < totalStudents) {
+    const minPlacesPerMenu = Math.ceil(totalStudents / menus.length);
+    throw new Error(
+      `Capacité insuffisante! Vous avez ${totalStudents} étudiants pour ${menus.length} menus.\n` +
+      `Avec ${maxStudentsPerGroup} places par menu, la capacité totale est de ${totalCapacity} places.\n` +
+      `Augmentez le nombre de places à minimum ${minPlacesPerMenu} par menu (total: ${minPlacesPerMenu * menus.length} places).`
+    );
+  }
+
+  const targetSize = Math.floor(totalStudents / menus.length);
   const groupsResult = {};
   const rebasculageMap = {}; // Tracker les rebasculages
 

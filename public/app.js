@@ -356,7 +356,9 @@ function showNotesModal(member, groupLetter) {
 }
 
 function showError(message) {
-  errorMessage.textContent = message;
+  // Formater le message avec les retours à la ligne en HTML
+  const formattedMessage = message.split('\n').join('<br>');
+  errorMessage.innerHTML = formattedMessage;
   errorSection.classList.remove('hidden');
   resultsSection.classList.add('hidden');
 }

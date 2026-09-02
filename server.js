@@ -67,7 +67,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);
-    res.status(500).json({ error: error.message });
+    // Vérifier si c'est une erreur de capacité insuffisante
+    if (error.message.includes('Capacité insuffisante')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
@@ -147,7 +152,12 @@ app.get('/api/demo-load', (req, res) => {
     res.json({ students, groups });
   } catch (error) {
     console.error('Erreur:', error);
-    res.status(500).json({ error: error.message });
+    // Vérifier si c'est une erreur de capacité insuffisante
+    if (error.message.includes('Capacité insuffisante')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
