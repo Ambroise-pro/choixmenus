@@ -85,22 +85,26 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
   });
 
   // Étape 1b : Identifier les étudiants rebasculés (n'ont pas eu leur 1er choix)
-  const rebasculedStudents = students.filter(s => !rebasculageMap[s.id]);
+  let rebasculedStudents = students.filter(s => !rebasculageMap[s.id]);
   const assignedFromRank2OnlyRebasculed = new Set();
 
-  // Étape 2 : Assigner les 2ème choix des REBASCULÉS en priorité
+  // Étape 2 : Assigner les choix des REBASCULÉS avec priorité absolue
+  // Ils peuvent remplacer les étudiants de 1er choix si nécessaire
   for (let preferenceRank = 1; preferenceRank < 5; preferenceRank++) {
-    rebasculedStudents.forEach(student => {
-      if (assignedFromRank2OnlyRebasculed.has(student.id)) return;
+    const toAssignThisRank = rebasculedStudents.filter(s => !assignedFromRank2OnlyRebasculed.has(s.id));
 
+    toAssignThisRank.forEach(student => {
       const menuAtRank = student.menus[preferenceRank];
       if (!menuAtRank) return;
 
       const menuLetter = menuAtRank.letter;
       const group = groupsResult[`menu-${menuLetter}`];
 
-      if (group) {
-        // Les rebasculés ont priorité, pas de limite de capacité pour eux
+      if (!group) return;
+
+      // Vérifier si le groupe a de la capacité
+      if (group.studentObjects.length < group.capacity) {
+        // Capacité disponible, ajouter directement
         group.studentObjects.push({
           student,
           desiredMenu: student.menus[0].letter,
@@ -115,11 +119,64 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
           finalMenu: menuLetter,
           preferenceRank: preferenceRank + 1,
           wasRebasculé: true,
-          reason: `Rebasculé au choix ${preferenceRank + 1} (priorité rebasculé)`,
+          reason: `Assigné au choix ${preferenceRank + 1} (priorité rebasculé)`,
           compatibility: null
         };
 
         assignedFromRank2OnlyRebasculed.add(student.id);
+      } else {
+        // Le groupe est plein, rejeter un étudiant de 1er choix
+        const firstChoiceStudents = group.studentObjects.filter(s => s.preferenceRank === 1);
+
+        if (firstChoiceStudents.length > 0) {
+          // Calculer compatibilité de chaque 1er choix avec le menu du rebasculé
+          const withCompatibility = firstChoiceStudents
+            .map(s => ({
+              ...s,
+              compatibility: countCommonActivities(menuLetter, s.desiredMenu, menuActivitiesList)
+            }))
+            .sort((a, b) => b.compatibility - a.compatibility); // Meilleur compatible d'abord
+
+          // Préférer rejeter celui avec 2+ activités en commun
+          const toReject = withCompatibility.find(s => s.compatibility >= 2) || withCompatibility[0];
+
+          if (toReject) {
+            const rejectedStudent = toReject.student;
+            const rejectedId = rejectedStudent.id;
+
+            // Retirer le rejeté du groupe
+            group.studentObjects = group.studentObjects.filter(s => s.student.id !== rejectedId);
+
+            // Ajouter le rebasculé à la place
+            group.studentObjects.push({
+              student,
+              desiredMenu: student.menus[0].letter,
+              nextChoice: student.menus[preferenceRank + 1]?.letter || null,
+              preferenceRank: preferenceRank + 1,
+              wasRebasculed: true
+            });
+
+            rebasculageMap[student.id] = {
+              studentId: student.id,
+              desiredMenu: student.menus[0].letter,
+              finalMenu: menuLetter,
+              preferenceRank: preferenceRank + 1,
+              wasRebasculé: true,
+              reason: `Assigné au choix ${preferenceRank + 1} (priorité rebasculé)`,
+              compatibility: null
+            };
+
+            assignedFromRank2OnlyRebasculed.add(student.id);
+
+            // Le rejeté n'est plus assigné
+            delete rebasculageMap[rejectedId];
+
+            // Ajouter le rejeté au liste de rebasculés si pas encore dedans
+            if (!rebasculedStudents.includes(rejectedStudent)) {
+              rebasculedStudents.push(rejectedStudent);
+            }
+          }
+        }
       }
     });
   }
