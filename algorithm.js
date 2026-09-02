@@ -42,87 +42,80 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
   menus.forEach(letter => {
     groupsResult[`menu-${letter}`] = {
       letter,
-      studentObjects: []
+      studentObjects: [],
+      capacity: maxStudentsPerGroup || Math.ceil(students.length / menus.length)
     };
   });
 
-  // Étape 1 : Assigner les étudiants par 1ère préférence
-  students.forEach(student => {
-    const firstMenuLetter = student.menus[0]?.letter;
-    if (firstMenuLetter) {
-      groupsResult[`menu-${firstMenuLetter}`].studentObjects.push({
-        student,
-        desiredMenu: firstMenuLetter,
-        nextChoice: student.menus[1]?.letter || null
-      });
-      rebasculageMap[student.id] = {
-        studentId: student.id,
-        desiredMenu: firstMenuLetter,
-        finalMenu: firstMenuLetter,
-        wasRebasculé: false,
-        reason: null,
-        compatibility: null
-      };
-    }
-  });
+  // Étape 1 : Assigner les étudiants par ordre de préférence
+  // Pour chaque rang de préférence (1er, 2ème, 3ème, etc.)
+  for (let preferenceRank = 0; preferenceRank < 5; preferenceRank++) {
+    students.forEach(student => {
+      // Si l'étudiant est déjà assigné, passer
+      if (rebasculageMap[student.id]) {
+        return;
+      }
 
-  // Étape 2 : Équilibrer les groupes surpeuplés
-  for (let iteration = 0; iteration < 5; iteration++) {
-    const overfull = menus.filter(m => groupsResult[`menu-${m}`].studentObjects.length > targetSize);
+      const menuAtRank = student.menus[preferenceRank];
+      if (!menuAtRank) return; // Pas de menu à ce rang
 
-    if (overfull.length === 0) break;
+      const menuLetter = menuAtRank.letter;
+      const group = groupsResult[`menu-${menuLetter}`];
 
-    overfull.forEach(menuLetter => {
-      const groupStudents = groupsResult[`menu-${menuLetter}`].studentObjects;
-      const excess = groupStudents.length - targetSize;
-      const totalDemand = groupStudents.length;
-
-      if (excess > 0) {
-        // Calculer la compatibilité de chaque étudiant avec leur 2ème choix
-        const withCompatibility = groupStudents
-          .filter(s => s.nextChoice)
-          .map(s => ({
-            ...s,
-            compatibility: countCommonActivities(menuLetter, s.nextChoice, menuActivitiesList)
-          }))
-          .sort((a, b) => b.compatibility - a.compatibility); // Plus compatible en premier
-
-        // Rejeter les plus compatibles (moins de perte pour eux)
-        const toReject = withCompatibility.slice(0, excess);
-        const toKeepStudents = new Set(toReject.map(t => t.student.id));
-        const toKeep = groupStudents.filter(gs => !toKeepStudents.has(gs.student.id));
-
-        groupsResult[`menu-${menuLetter}`].studentObjects = toKeep;
-
-        // Placer les rejetés dans leur 2ème choix et tracker le rebasculage
-        toReject.forEach(rejected => {
-          const nextMenu = rejected.nextChoice;
-          groupsResult[`menu-${nextMenu}`].studentObjects.push({
-            student: rejected.student,
-            desiredMenu: nextMenu,
-            nextChoice: rejected.student.menus[2]?.letter || null
-          });
-
-          // Enregistrer le rebasculage
-          rebasculageMap[rejected.student.id] = {
-            studentId: rejected.student.id,
-            desiredMenu: menuLetter,
-            finalMenu: nextMenu,
-            wasRebasculé: true,
-            reason: {
-              surplusDemand: totalDemand,
-              targetSize: targetSize,
-              compatibilityScore: rejected.compatibility,
-              compatibilityPercent: ((rejected.compatibility / 3) * 100).toFixed(1),
-              fromMenu: menuLetter,
-              toMenu: nextMenu
-            },
-            compatibility: rejected.compatibility
-          };
+      // Vérifier si la place est disponible
+      if (group && group.studentObjects.length < group.capacity) {
+        group.studentObjects.push({
+          student,
+          desiredMenu: menuLetter,
+          nextChoice: student.menus[preferenceRank + 1]?.letter || null,
+          preferenceRank: preferenceRank + 1
         });
+
+        rebasculageMap[student.id] = {
+          studentId: student.id,
+          desiredMenu: menuLetter,
+          finalMenu: menuLetter,
+          preferenceRank: preferenceRank + 1,
+          wasRebasculé: preferenceRank > 0,
+          reason: preferenceRank > 0 ? `Accepté au choix ${preferenceRank + 1}` : null,
+          compatibility: null
+        };
       }
     });
   }
+
+  // Étape 2 : Gestion des étudiants non-assignés
+  // Si un étudiant ne peut pas être assigné (tous ses choix sont pleins)
+  // Le laisser dans l'étape 1 jusqu'aux derniers choix
+  const unassignedStudents = students.filter(s => !rebasculageMap[s.id]);
+
+  // Tenter d'assigner les étudiants restants à n'importe quel groupe avec de la place
+  unassignedStudents.forEach(student => {
+    for (let i = 0; i < menus.length; i++) {
+      const menuLetter = menus[i];
+      const group = groupsResult[`menu-${menuLetter}`];
+
+      if (group && group.studentObjects.length < group.capacity) {
+        group.studentObjects.push({
+          student,
+          desiredMenu: menuLetter,
+          nextChoice: null,
+          preferenceRank: null
+        });
+
+        rebasculageMap[student.id] = {
+          studentId: student.id,
+          desiredMenu: student.menus[0]?.letter,
+          finalMenu: menuLetter,
+          preferenceRank: null,
+          wasRebasculé: true,
+          reason: 'Tous les choix préférés étaient pleins',
+          compatibility: null
+        };
+        break;
+      }
+    }
+  });
 
   // Étape 3 : Construire le résultat final
   const finalResult = {};
