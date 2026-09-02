@@ -84,9 +84,76 @@ function createBalancedGroups(students, maxStudentsPerGroup = null) {
     });
   }
 
-  // Étape 2 : Gestion des étudiants non-assignés
+  // Étape 2 : Rééquilibrage basé sur la compatibilité des 2ème choix
+  // Rejeter les étudiants en 1ère choix qui ont 2+ activités en commun avec leur 2ème choix
+  for (let iteration = 0; iteration < 3; iteration++) {
+    let anyMovement = false;
+
+    menus.forEach(menuLetter => {
+      const group = groupsResult[`menu-${menuLetter}`];
+      if (group.studentObjects.length > group.capacity) {
+        const excess = group.studentObjects.length - group.capacity;
+
+        // Filtrer les étudiants de 1ère préférence avec un 2ème choix
+        const firstChoiceStudents = group.studentObjects
+          .filter(s => s.preferenceRank === 1 && s.nextChoice);
+
+        // Calculer la compatibilité avec le 2ème choix
+        const withCompatibility = firstChoiceStudents
+          .map(s => ({
+            ...s,
+            compatibility: countCommonActivities(menuLetter, s.nextChoice, menuActivitiesList)
+          }))
+          .sort((a, b) => b.compatibility - a.compatibility); // Plus compatible en premier
+
+        // Rejeter les plus compatibles (2+ activités en commun en priorité)
+        const toReject = withCompatibility
+          .filter(s => s.compatibility >= 2) // Prioriser 2+ activités communes
+          .slice(0, excess);
+
+        // Si pas assez, prendre aussi les moins compatibles
+        if (toReject.length < excess) {
+          const remaining = withCompatibility.filter(s => !toReject.includes(s));
+          toReject.push(...remaining.slice(0, excess - toReject.length));
+        }
+
+        if (toReject.length > 0) {
+          anyMovement = true;
+          const toRejectIds = new Set(toReject.map(t => t.student.id));
+          group.studentObjects = group.studentObjects.filter(s => !toRejectIds.has(s.student.id));
+
+          // Placer dans 2ème choix
+          toReject.forEach(rejected => {
+            const nextMenu = rejected.nextChoice;
+            const nextGroup = groupsResult[`menu-${nextMenu}`];
+            if (nextGroup) {
+              nextGroup.studentObjects.push({
+                student: rejected.student,
+                desiredMenu: nextMenu,
+                nextChoice: rejected.student.menus[2]?.letter || null,
+                preferenceRank: 2
+              });
+
+              rebasculageMap[rejected.student.id] = {
+                studentId: rejected.student.id,
+                desiredMenu: menuLetter,
+                finalMenu: nextMenu,
+                preferenceRank: 2,
+                wasRebasculé: true,
+                reason: `Rebasculé au 2ème choix (compatibilité: ${rejected.compatibility}/3 activités)`,
+                compatibility: rejected.compatibility
+              };
+            }
+          });
+        }
+      }
+    });
+
+    if (!anyMovement) break;
+  }
+
+  // Étape 3 : Gestion des étudiants non-assignés
   // Si un étudiant ne peut pas être assigné (tous ses choix sont pleins)
-  // Le laisser dans l'étape 1 jusqu'aux derniers choix
   const unassignedStudents = students.filter(s => !rebasculageMap[s.id]);
 
   // Tenter d'assigner les étudiants restants à n'importe quel groupe avec de la place
