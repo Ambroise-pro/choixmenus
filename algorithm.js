@@ -162,12 +162,6 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
     const groupData = groupsResult[`menu-${letter}`];
     const studentsInMenu = groupData.studentObjects.map(s => s.student);
 
-    // Vérifier la limite max
-    if (maxStudentsPerGroup && studentsInMenu.length > maxStudentsPerGroup) {
-      console.log(`Groupe Menu ${letter} ignoré (${studentsInMenu.length} > ${maxStudentsPerGroup})`);
-      return;
-    }
-
     // Récupérer les activités du menu (vide si aucun étudiant)
     const menuActivities = studentsInMenu.length > 0 ? getMenuActivities(letter, studentsInMenu) : [];
 
