@@ -1,5 +1,17 @@
 function createBalancedGroups(students, maxStudentsPerGroup = null) {
-  const menus = ['A', 'B', 'C', 'D', 'E'];
+  // Déterminer dynamiquement les menus présents dans les données
+  const menuLetters = new Set();
+  students.forEach(student => {
+    if (student.menus && Array.isArray(student.menus)) {
+      student.menus.forEach(menu => {
+        if (menu.letter) {
+          menuLetters.add(menu.letter);
+        }
+      });
+    }
+  });
+
+  const menus = Array.from(menuLetters).sort(); // Tri alphabétique
   const targetSize = Math.floor(students.length / menus.length);
   const groupsResult = {};
   const rebasculageMap = {}; // Tracker les rebasculages
