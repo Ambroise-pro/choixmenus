@@ -119,7 +119,14 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
           finalMenu: menuLetter,
           preferenceRank: preferenceRank + 1,
           wasRebasculé: true,
-          reason: `Assigné au choix ${preferenceRank + 1} (priorité rebasculé)`,
+          reason: {
+            fromMenu: student.menus[0].letter,
+            toMenu: menuLetter,
+            surplusDemand: group.studentObjects.length + 1,
+            targetSize: group.capacity,
+            compatibilityPercent: 0,
+            text: `Priorité rebasculé: placé au choix ${preferenceRank + 1}`
+          },
           compatibility: null
         };
 
@@ -162,7 +169,14 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
               finalMenu: menuLetter,
               preferenceRank: preferenceRank + 1,
               wasRebasculé: true,
-              reason: `Assigné au choix ${preferenceRank + 1} (priorité rebasculé)`,
+              reason: {
+                fromMenu: student.menus[0].letter,
+                toMenu: menuLetter,
+                surplusDemand: group.capacity + 1,
+                targetSize: group.capacity,
+                compatibilityPercent: 0,
+                text: `Priorité rebasculé: placé au choix ${preferenceRank + 1}`
+              },
               compatibility: null
             };
 
@@ -205,7 +219,14 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
           finalMenu: menuLetter,
           preferenceRank: null,
           wasRebasculé: true,
-          reason: 'Tous les choix préférés étaient pleins',
+          reason: {
+            fromMenu: student.menus[0]?.letter,
+            toMenu: menuLetter,
+            surplusDemand: students.length,
+            targetSize: menus.length * group.capacity,
+            compatibilityPercent: 0,
+            text: 'Tous les choix préférés étaient pleins'
+          },
           compatibility: null
         };
         break;
