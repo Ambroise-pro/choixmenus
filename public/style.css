@@ -455,9 +455,8 @@ section h2 {
 }
 
 /* Buttons */
-.btn-justification {
+.btn-justification, .btn-change-group {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 6px;
@@ -468,9 +467,22 @@ section h2 {
   width: 100%;
 }
 
+.btn-justification {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.btn-change-group {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
 .btn-justification:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-change-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
 }
 
 /* Modal Justification */
@@ -478,6 +490,55 @@ section h2 {
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* Modal Change Group */
+.modal-change-group {
+  max-width: 500px;
+}
+
+.group-options {
+  display: grid;
+  gap: 10px;
+}
+
+.group-option {
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.group-option:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.group-option.selected {
+  border-color: #667eea;
+  background: #f0f2ff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.group-option-header {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.group-option-activities {
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.group-option-count {
+  font-size: 0.9em;
+  color: #667eea;
+  font-weight: 500;
 }
 
 .justification-detail {

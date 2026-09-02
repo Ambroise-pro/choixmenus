@@ -9,7 +9,7 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(express.static('public'));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.post('/api/upload', upload.single('file'), (req, res) => {
   try {
@@ -157,41 +157,24 @@ app.post('/api/export', (req, res) => {
 
     const wb = xlsx.utils.book_new();
 
-    // Créer une feuille pour chaque activité
-    Object.entries(groups).forEach(([activity, groupData]) => {
+    // Créer une feuille pour chaque menu
+    Object.entries(groups).forEach(([groupKey, groupData]) => {
       const wsData = [
-        [groupData.name.toUpperCase()],
-        [],
-        ['Prénom', 'Nom', 'Classe', 'Moyenne'],
-        ...groupData.members.map(m => [m.prenom, m.nom, m.classe, m.avgGrade])
+        ['Nom', 'Prénom', 'Classe'],
+        ...groupData.members.map(m => [m.nom, m.prenom, m.classe])
       ];
 
       const ws = xlsx.utils.aoa_to_sheet(wsData);
       ws['!cols'] = [
         { wch: 15 },
         { wch: 15 },
-        { wch: 10 },
         { wch: 10 }
       ];
 
-      xlsx.utils.book_append_sheet(wb, ws, activity.substring(0, 31));
+      // Nommer l'onglet selon le menu
+      const sheetName = `Menu ${groupData.letter}`;
+      xlsx.utils.book_append_sheet(wb, ws, sheetName);
     });
-
-    // Créer une feuille récapitulatif
-    const summaryData = [
-      ['RÉSUMÉ DES GROUPES'],
-      [],
-      ['Activité', 'Nombre d\'étudiants', 'Moyenne'],
-      ...Object.entries(groups).map(([activity, groupData]) => [
-        groupData.name,
-        groupData.count,
-        groupData.avgGrade
-      ])
-    ];
-
-    const summarws = xlsx.utils.aoa_to_sheet(summaryData);
-    summarws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }];
-    xlsx.utils.book_append_sheet(wb, summarws, 'Récapitulatif', 0);
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

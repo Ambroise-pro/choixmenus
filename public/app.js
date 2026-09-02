@@ -1,5 +1,7 @@
 let currentData = null;
 let currentMember = null;
+let currentGroupLetter = null;
+let selectedNewGroup = null;
 
 const uploadArea = document.getElementById('uploadArea');
 const fileInput = document.getElementById('fileInput');
@@ -177,7 +179,7 @@ function createGroupCard(groupKey, groupData) {
       <div class="member-name">${member.prenom} ${member.nom} <span style="color: #667eea; font-size: 0.85em; font-weight: 500;">(${chosenOrderText})</span></div>
       <div class="member-info">${member.classe}</div>
     `;
-    memberEl.addEventListener('click', () => showNotesModal(member));
+    memberEl.addEventListener('click', () => showNotesModal(member, groupData.letter));
     membersDiv.appendChild(memberEl);
   });
 
@@ -197,8 +199,10 @@ function createGroupCard(groupKey, groupData) {
   return card;
 }
 
-function showNotesModal(member) {
+function showNotesModal(member, groupLetter) {
   currentMember = member;
+  currentGroupLetter = groupLetter;
+  selectedNewGroup = null;
 
   document.getElementById('modalTitle').textContent = `Notes de ${member.prenom} ${member.nom}`;
 
@@ -438,12 +442,85 @@ function showJustificationModal(member) {
   justificationModal.classList.remove('hidden');
 }
 
+function showChangeGroupModal() {
+  if (!currentMember || !currentGroupLetter) return;
+
+  const changeGroupModal = document.getElementById('changeGroupModal');
+  const groupOptions = document.getElementById('groupOptions');
+  const changeGroupInfo = document.getElementById('changeGroupInfo');
+
+  // Afficher les infos
+  changeGroupInfo.textContent = `${currentMember.prenom} ${currentMember.nom} est actuellement au Menu ${currentGroupLetter}. Choisissez un nouveau groupe:`;
+
+  // Créer les options de groupe
+  groupOptions.innerHTML = '';
+  const menuLetters = ['A', 'B', 'C', 'D', 'E'];
+
+  menuLetters.forEach(letter => {
+    const group = currentData.groups[`menu-${letter}`];
+    if (!group) return;
+
+    const option = document.createElement('div');
+    option.className = 'group-option';
+    // Pré-sélectionner le groupe actuel
+    if (letter === currentGroupLetter) {
+      option.classList.add('selected');
+      selectedNewGroup = letter;
+    }
+
+    option.innerHTML = `
+      <div class="group-option-header">📋 Menu ${letter}</div>
+      <div class="group-option-activities">${group.activities.join(' • ')}</div>
+      <div class="group-option-count">👥 ${group.count} étudiants</div>
+    `;
+
+    option.addEventListener('click', () => {
+      document.querySelectorAll('.group-option').forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+      selectedNewGroup = letter;
+    });
+
+    groupOptions.appendChild(option);
+  });
+
+  notesModal.classList.add('hidden');
+  changeGroupModal.classList.remove('hidden');
+}
+
+function confirmChangeGroup() {
+  if (!selectedNewGroup || !currentMember || !currentGroupLetter) return;
+
+  if (selectedNewGroup === currentGroupLetter) {
+    alert('Veuillez choisir un groupe différent');
+    return;
+  }
+
+  // Déplacer l'étudiant
+  const oldGroup = currentData.groups[`menu-${currentGroupLetter}`];
+  const newGroup = currentData.groups[`menu-${selectedNewGroup}`];
+
+  // Retirer de l'ancien groupe
+  oldGroup.members = oldGroup.members.filter(m => m !== currentMember);
+  oldGroup.count = oldGroup.members.length;
+
+  // Ajouter au nouveau groupe
+  newGroup.members.push(currentMember);
+  newGroup.count = newGroup.members.length;
+
+  // Fermer le modal et réafficher
+  document.getElementById('changeGroupModal').classList.add('hidden');
+  displayResults();
+
+  alert(`${currentMember.prenom} ${currentMember.nom} a été déplacé(e) au Menu ${selectedNewGroup}`);
+}
+
 // Modal controls
 const allModalCloses = document.querySelectorAll('.modal-close');
 allModalCloses.forEach(close => {
   close.addEventListener('click', () => {
     notesModal.classList.add('hidden');
     justificationModal.classList.add('hidden');
+    document.getElementById('changeGroupModal').classList.add('hidden');
   });
 });
 
@@ -465,6 +542,25 @@ document.addEventListener('DOMContentLoaded', () => {
     showJustBtn.addEventListener('click', () => {
       if (currentMember) {
         showJustificationModal(currentMember);
+      }
+    });
+  }
+
+  const changeGroupBtn = document.getElementById('changeGroupBtn');
+  if (changeGroupBtn) {
+    changeGroupBtn.addEventListener('click', showChangeGroupModal);
+  }
+
+  const confirmChangeBtn = document.getElementById('confirmChangeBtn');
+  if (confirmChangeBtn) {
+    confirmChangeBtn.addEventListener('click', confirmChangeGroup);
+  }
+
+  const changeGroupModal = document.getElementById('changeGroupModal');
+  if (changeGroupModal) {
+    changeGroupModal.addEventListener('click', (e) => {
+      if (e.target === changeGroupModal) {
+        changeGroupModal.classList.add('hidden');
       }
     });
   }

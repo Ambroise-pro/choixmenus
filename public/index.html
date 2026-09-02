@@ -103,8 +103,9 @@
           <div class="preferences-list" id="preferencesList"></div>
         </div>
       </div>
-      <div style="margin-top: 20px; text-align: center;">
+      <div style="margin-top: 20px; text-align: center; display: flex; gap: 10px; flex-direction: column;">
         <button id="showJustificationBtn" class="btn-justification">📋 Voir ma justification</button>
+        <button id="changeGroupBtn" class="btn-change-group">🔄 Changer de groupe</button>
       </div>
     </div>
   </div>
@@ -115,6 +116,19 @@
       <span class="modal-close">&times;</span>
       <h2 id="justificationTitle">Justification de répartition</h2>
       <div id="justificationContent" class="justification-detail"></div>
+    </div>
+  </div>
+
+  <!-- Modal pour changer de groupe -->
+  <div id="changeGroupModal" class="modal hidden">
+    <div class="modal-content modal-change-group">
+      <span class="modal-close">&times;</span>
+      <h2>Changer de groupe</h2>
+      <p id="changeGroupInfo" style="color: #666; margin-bottom: 20px;"></p>
+      <div id="groupOptions" class="group-options"></div>
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="confirmChangeBtn" class="btn-primary" style="width: 100%;">Confirmer le changement</button>
+      </div>
     </div>
   </div>
 

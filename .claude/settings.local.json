@@ -22,7 +22,13 @@
       "Bash(curl -s \"http://localhost:3000/api/demo-load\")",
       "Bash(python3 -c ' *)",
       "Bash(kill 31977 31966 31747 31733)",
-      "Bash(pkill -f \"node server.js\")"
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(curl -s http://localhost:56841/api/demo-load)",
+      "Bash(curl -s -X POST http://localhost:56841/api/export -H 'Content-Type: application/json' -d @- -o /tmp/test_real_export.xlsx)",
+      "Bash(curl -s -X POST http://localhost:3000/api/export -H 'Content-Type: application/json' -d @- -o /tmp/test_export_final.xlsx)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "mcp__claude-in-chrome__navigate"
     ]
   }
 }
