@@ -5,8 +5,8 @@ Une application pour créer automatiquement des groupes équilibrés en fonction
 ## 🎯 Fonctionnalités
 
 - **Charger un fichier Excel** avec les choix de menus et les notes
-- **Créer des groupes équilibrés** en distribuant les étudiants selon leurs préférences
-- **Équilibre par niveau** : les groupes ont une moyenne de notes similaire
+- **Créer des groupes équilibrés** en distribuant les étudiants selon leurs deux premiers choix
+- **Consultation des notes** : les notes trimestrielles restent visibles pour chaque étudiant
 - **Visualisation intuitive** avec les statistiques de chaque groupe
 - **Exporter les résultats** en Excel avec un détail par activité
 
@@ -53,11 +53,11 @@ Le fichier doit contenir les colonnes suivantes :
 ## 🔧 Algorithme d'équilibrage
 
 1. **Groupe par premier choix** : Les étudiants sont d'abord groupés par leur première préférence
-2. **Tri par niveau** : Au sein de chaque groupe, les étudiants sont triés par moyenne (du plus haut au plus bas)
-3. **Distribution équitable** : Les étudiants sont distribués round-robin entre les activités de leur menu préféré
-4. **Résultat** : Des groupes équilibrés en termes de :
+2. **Respect de la capacité** : chaque menu est limité par la capacité indiquée, ou par une taille cible calculée automatiquement
+3. **Rebasculage obligatoire au 2e choix** : un étudiant non placé sur son premier choix doit obtenir son deuxième choix
+4. **Erreur si impossible** : si les capacités ne permettent pas de respecter la règle 1er ou 2e choix pour tout le monde, l'application bloque la génération
+5. **Résultat** : Des groupes équilibrés en termes de :
    - Taille
-   - Niveau académique (moyenne des notes)
    - Préférences de menus
 
 ## 📊 Résultats générés
@@ -65,7 +65,6 @@ Le fichier doit contenir les colonnes suivantes :
 Pour chaque activité/groupe, vous obtenez :
 - **Liste des étudiants** avec leurs notes moyennes
 - **Taille du groupe**
-- **Moyenne du groupe**
 - **Distribution des préférences** (combien d'étudiants du Menu A, B, C, etc.)
 
 ## 📁 Structure du projet

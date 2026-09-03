@@ -624,6 +624,7 @@ section h2 {
   padding: 15px;
   border-radius: 8px;
   font-weight: 500;
+  white-space: pre-line;
 }
 
 /* Raw Stats Section */

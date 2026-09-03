@@ -109,8 +109,9 @@ function parseNoteWithActivity(str) {
 app.get('/api/demo-load', (req, res) => {
   try {
     const maxStudents = req.query.maxStudents ? parseInt(req.query.maxStudents) : null;
+    const numMenus = req.query.numMenus ? parseInt(req.query.numMenus) : null;
 
-    const filePath = './Choix des menus EPS – Terminale (1-2).xlsx';
+    const filePath = './tests/test_normal_140.xlsx';
     const fileBuffer = fs.readFileSync(filePath);
     const workbook = xlsx.read(fileBuffer);
     const sheetName = workbook.SheetNames[0];

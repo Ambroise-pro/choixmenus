@@ -253,10 +253,17 @@ function showChoiceDetailsModal(menu, order, students) {
   students.forEach(student => {
     const div = document.createElement('div');
     div.className = 'student-item';
-    div.innerHTML = `
-      <div class="student-name">${student.prenom} ${student.nom}</div>
-      <div class="student-classe">${student.classe}</div>
-    `;
+
+    const name = document.createElement('div');
+    name.className = 'student-name';
+    name.textContent = `${student.prenom} ${student.nom}`;
+
+    const classe = document.createElement('div');
+    classe.className = 'student-classe';
+    classe.textContent = student.classe;
+
+    div.appendChild(name);
+    div.appendChild(classe);
     studentsList.appendChild(div);
   });
 
@@ -276,7 +283,10 @@ function createGroupCard(groupKey, groupData) {
 
   const activities = document.createElement('div');
   activities.className = 'group-activities';
-  activities.innerHTML = `<strong>Activités :</strong> ${groupData.activities.join(' • ')}`;
+  const activitiesLabel = document.createElement('strong');
+  activitiesLabel.textContent = 'Activités :';
+  activities.appendChild(activitiesLabel);
+  activities.append(` ${groupData.activities.join(' • ')}`);
 
   const stats = document.createElement('div');
   stats.className = 'group-stats';
@@ -297,20 +307,39 @@ function createGroupCard(groupKey, groupData) {
     const memberEl = document.createElement('div');
     memberEl.className = 'member';
     const chosenOrderText = member.chosenMenuOrder === 1 ? '1ère préférence' : `${member.chosenMenuOrder}ème choix`;
-    memberEl.innerHTML = `
-      <div class="member-name">${member.prenom} ${member.nom} <span style="color: #667eea; font-size: 0.85em; font-weight: 500;">(${chosenOrderText})</span></div>
-      <div class="member-info">${member.classe}</div>
-    `;
+
+    const memberName = document.createElement('div');
+    memberName.className = 'member-name';
+    memberName.append(`${member.prenom} ${member.nom} `);
+
+    const choice = document.createElement('span');
+    choice.style.color = '#667eea';
+    choice.style.fontSize = '0.85em';
+    choice.style.fontWeight = '500';
+    choice.textContent = `(${chosenOrderText})`;
+    memberName.appendChild(choice);
+
+    const memberInfo = document.createElement('div');
+    memberInfo.className = 'member-info';
+    memberInfo.textContent = member.classe;
+
+    memberEl.appendChild(memberName);
+    memberEl.appendChild(memberInfo);
     memberEl.addEventListener('click', () => showNotesModal(member, groupData.letter));
     membersDiv.appendChild(memberEl);
   });
 
   const prefsDiv = document.createElement('div');
   prefsDiv.className = 'preferences';
-  prefsDiv.innerHTML = '<strong>Préférences :</strong>' +
-    Object.entries(groupData.preferences)
-      .map(([menu, count]) => `<div class="preference-item">${menu}: ${count}</div>`)
-      .join('');
+  const prefsLabel = document.createElement('strong');
+  prefsLabel.textContent = 'Préférences :';
+  prefsDiv.appendChild(prefsLabel);
+  Object.entries(groupData.preferences).forEach(([menu, count]) => {
+    const prefItem = document.createElement('div');
+    prefItem.className = 'preference-item';
+    prefItem.textContent = `${menu}: ${count}`;
+    prefsDiv.appendChild(prefItem);
+  });
 
   body.appendChild(membersDiv);
   body.appendChild(prefsDiv);
@@ -346,9 +375,11 @@ function showNotesModal(member, groupLetter) {
       const prefEl = document.createElement('div');
       prefEl.className = `preference-choice ${menu.order === member.chosenMenuOrder ? 'chosen' : ''}`;
       const orderText = menu.order === 1 ? '1ère' : `${menu.order}ème`;
-      prefEl.innerHTML = `
-        <span class="preference-order">${orderText} choix:</span> Menu ${menu.letter}
-      `;
+      const order = document.createElement('span');
+      order.className = 'preference-order';
+      order.textContent = `${orderText} choix:`;
+      prefEl.appendChild(order);
+      prefEl.append(` Menu ${menu.letter}`);
       preferencesList.appendChild(prefEl);
     });
   }
@@ -361,9 +392,7 @@ function showNotesModal(member, groupLetter) {
 }
 
 function showError(message) {
-  // Formater le message avec les retours à la ligne en HTML
-  const formattedMessage = message.split('\n').join('<br>');
-  errorMessage.innerHTML = formattedMessage;
+  errorMessage.textContent = message;
   errorSection.classList.remove('hidden');
   resultsSection.classList.add('hidden');
 }
@@ -407,45 +436,19 @@ newFileBtn.addEventListener('click', () => {
 
 createGroupsBtn.addEventListener('click', createGroups);
 
-// Charger les données démo du serveur (140 étudiants)
-async function loadDemoDataFromServer() {
-  loadingMessage.classList.remove('hidden');
-  errorSection.classList.add('hidden');
-
-  try {
-    const response = await fetch('/api/demo-load');
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Erreur lors du chargement des données');
-    }
-
-    currentData = await response.json();
-    displayResults();
-  } catch (error) {
-    showError(error.message);
-  } finally {
-    loadingMessage.classList.add('hidden');
-  }
-}
-
-// Si mode démo avec données serveur
-if (window.location.search === '?demo-data') {
-  window.addEventListener('load', loadDemoDataFromServer);
-}
-
 function showJustificationModal(member) {
   const rebasculage = member.rebasculage;
 
   document.getElementById('justificationTitle').textContent = `Justification - ${member.prenom} ${member.nom}`;
 
-  const menuActivities = {
-    'A': ['Demi-fond', 'Escalade', 'Badminton'],
-    'B': ['Escalade', 'Volley-ball', 'Demi-fond'],
-    'C': ['Danse', 'Natation', 'Step'],
-    'D': ['Volley-ball', 'Danse', 'Natation'],
-    'E': ['Foot', 'Musculation', 'Demi-fond']
-  };
+  const menuActivities = getCurrentMenuActivities();
+  const escapeHtml = (value) => String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const safeClasse = escapeHtml(member.classe);
 
   let html = '';
 
@@ -457,12 +460,16 @@ function showJustificationModal(member) {
     const commonActivities = fromActivities.filter(a =>
       toActivities.some(b => a.toLowerCase() === b.toLowerCase())
     );
+    const compatibilityPercent = fromActivities.length > 0
+      ? Math.round((commonActivities.length / fromActivities.length) * 100)
+      : 0;
+    const finalGroupSize = currentData.groups[`menu-${reason.toMenu}`]?.count ?? 0;
 
     html = `
       <div class="justification-section">
         <h3>📌 Votre situation</h3>
         <div class="justification-item">
-          <strong>Classe :</strong> ${member.classe}<br>
+          <strong>Classe :</strong> ${safeClasse}<br>
           <strong>1ère choix :</strong> Menu ${reason.fromMenu}<br>
           <strong>Placement final :</strong> Menu ${reason.toMenu}
           <span class="status-badge status-rebasculé">Rebasculé</span>
@@ -482,13 +489,13 @@ function showJustificationModal(member) {
         <h3>✅ Analyse de votre cas</h3>
         <div class="justification-item highlight">
           <strong>Compatibilité avec Menu ${reason.toMenu} :</strong><br><br>
-          Activités conservées : <span class="compatibility-score">${commonActivities.length}/3 = ${reason.compatibilityPercent}%</span>
+          Activités conservées : <span class="compatibility-score">${commonActivities.length}/${fromActivities.length || 0} = ${compatibilityPercent}%</span>
         </div>
         <div style="padding: 12px; font-size: 0.9em; color: #555;">
-          ${commonActivities.map(a => `✓ ${a} (conservé)`).join('<br>')}
+          ${commonActivities.map(a => `✓ ${escapeHtml(a)} (conservé)`).join('<br>')}
           ${toActivities.filter(a => !commonActivities.some(b => a.toLowerCase() === b.toLowerCase())).map((a, i) => {
             const replaced = fromActivities[i];
-            return `<br>↔ ${replaced} → ${a} (changement)`;
+            return `<br>↔ ${escapeHtml(replaced)} → ${escapeHtml(a)} (changement)`;
           }).join('')}
         </div>
       </div>
@@ -496,7 +503,7 @@ function showJustificationModal(member) {
       <div class="justification-section">
         <h3>📋 Pourquoi Menu ${reason.toMenu} ?</h3>
         <div class="justification-item">
-          Vous avez ${reason.compatibilityPercent}% de vos activités préférées conservées.
+          Vous avez ${compatibilityPercent}% de vos activités préférées conservées.
           <br><br>
           C'est le meilleur compromis possible pour :
           <br>✓ Respecter votre 2ème choix
@@ -509,21 +516,22 @@ function showJustificationModal(member) {
         <h3>🎯 Résultat final</h3>
         <div class="justification-item">
           <strong>Menu affecté :</strong> ${reason.toMenu}<br>
-          <strong>Activités :</strong> ${toActivities.join(' + ')}<br>
-          <strong>Groupe :</strong> 28 étudiants
+          <strong>Activités :</strong> ${toActivities.map(escapeHtml).join(' + ')}<br>
+          <strong>Groupe :</strong> ${finalGroupSize} étudiant${finalGroupSize > 1 ? 's' : ''}
         </div>
       </div>
     `;
   } else {
     // Cas 2 : Étudiant à sa 1ère préférence
-    const finalMenuLetter = member.allMenus[member.chosenMenuOrder - 1]?.letter;
+    const finalMenuLetter = currentGroupLetter || member.allMenus[member.chosenMenuOrder - 1]?.letter;
     const finalActivities = menuActivities[finalMenuLetter] || [];
+    const finalGroupSize = currentData.groups[`menu-${finalMenuLetter}`]?.count ?? 0;
 
     html = `
       <div class="justification-section">
         <h3>📌 Votre situation</h3>
         <div class="justification-item">
-          <strong>Classe :</strong> ${member.classe}<br>
+          <strong>Classe :</strong> ${safeClasse}<br>
           <strong>1ère choix :</strong> Menu ${finalMenuLetter}<br>
           <strong>Placement final :</strong> Menu ${finalMenuLetter}
           <span class="status-badge status-ok">Accepté ✓</span>
@@ -543,8 +551,8 @@ function showJustificationModal(member) {
         <h3>🎯 Vos activités</h3>
         <div class="justification-item">
           <strong>Menu :</strong> ${finalMenuLetter}<br>
-          <strong>Activités :</strong> ${finalActivities.join(' + ')}<br>
-          <strong>Groupe :</strong> 28 étudiants
+          <strong>Activités :</strong> ${finalActivities.map(escapeHtml).join(' + ')}<br>
+          <strong>Groupe :</strong> ${finalGroupSize} étudiant${finalGroupSize > 1 ? 's' : ''}
         </div>
       </div>
 
@@ -553,7 +561,7 @@ function showJustificationModal(member) {
         <div class="justification-item">
           ✓ Votre 1ère préférence avait de la place<br>
           ✓ L'algorithme a pu respecter votre choix<br>
-          ✓ Les groupes restent équilibrés (28 étudiants par menu)<br>
+          ✓ Les groupes restent équilibrés (${finalGroupSize} étudiant${finalGroupSize > 1 ? 's' : ''} dans ce menu)<br>
           <br>
           <strong>Résultat :</strong> Vous êtes exactement où vous le souhaitiez !
         </div>
@@ -564,6 +572,17 @@ function showJustificationModal(member) {
   document.getElementById('justificationContent').innerHTML = html;
   notesModal.classList.add('hidden');
   justificationModal.classList.remove('hidden');
+}
+
+function getCurrentMenuActivities() {
+  const activitiesByMenu = {};
+  if (!currentData || !currentData.groups) return activitiesByMenu;
+
+  Object.values(currentData.groups).forEach(group => {
+    activitiesByMenu[group.letter] = group.activities || [];
+  });
+
+  return activitiesByMenu;
 }
 
 function showChangeGroupModal() {
@@ -592,11 +611,21 @@ function showChangeGroupModal() {
       selectedNewGroup = letter;
     }
 
-    option.innerHTML = `
-      <div class="group-option-header">📋 Menu ${letter}</div>
-      <div class="group-option-activities">${group.activities.join(' • ')}</div>
-      <div class="group-option-count">👥 ${group.count} étudiants</div>
-    `;
+    const optionHeader = document.createElement('div');
+    optionHeader.className = 'group-option-header';
+    optionHeader.textContent = `📋 Menu ${letter}`;
+
+    const optionActivities = document.createElement('div');
+    optionActivities.className = 'group-option-activities';
+    optionActivities.textContent = group.activities.join(' • ');
+
+    const optionCount = document.createElement('div');
+    optionCount.className = 'group-option-count';
+    optionCount.textContent = `👥 ${group.count} étudiant${group.count > 1 ? 's' : ''}`;
+
+    option.appendChild(optionHeader);
+    option.appendChild(optionActivities);
+    option.appendChild(optionCount);
 
     option.addEventListener('click', () => {
       document.querySelectorAll('.group-option').forEach(o => o.classList.remove('selected'));
@@ -706,7 +735,11 @@ async function loadDemoDataFromServer() {
   errorSection.classList.add('hidden');
 
   const maxStudents = maxStudentsInput.value;
-  const url = '/api/demo-load' + (maxStudents ? `?maxStudents=${maxStudents}` : '');
+  const numMenus = document.getElementById('numMenus').value;
+  const params = new URLSearchParams();
+  if (maxStudents) params.set('maxStudents', maxStudents);
+  if (numMenus) params.set('numMenus', numMenus);
+  const url = `/api/demo-load${params.toString() ? `?${params}` : ''}`;
 
   try {
     const response = await fetch(url);

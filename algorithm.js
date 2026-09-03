@@ -36,6 +36,10 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
   const targetSize = Math.floor(totalStudents / menus.length);
   const groupsResult = {};
   const rebasculageMap = {}; // Tracker les rebasculages
+  const firstChoiceDemand = {};
+  menus.forEach(letter => {
+    firstChoiceDemand[letter] = students.filter(student => student.menus[0]?.letter === letter).length;
+  });
 
   // Extraire les activités réelles de chaque menu depuis les données des étudiants
   const menuActivitiesList = {};
@@ -59,183 +63,35 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
     };
   });
 
-  // Étape 1 : Assigner les 1er choix
-  students.forEach(student => {
-    const menuAtRank = student.menus[0];
-    if (!menuAtRank) return;
-
-    const menuLetter = menuAtRank.letter;
+  // Affectation globale avec règle stricte:
+  // chaque élève doit obtenir son 1er choix ou, si ce n'est pas possible, son 2e choix.
+  const assignments = assignFirstOrSecondChoice(students, groupsResult);
+  assignments.forEach(({ student, menuLetter, preferenceRank }) => {
     const group = groupsResult[`menu-${menuLetter}`];
-
-    if (group && group.studentObjects.length < group.capacity) {
-      group.studentObjects.push({
-        student,
-        desiredMenu: menuLetter,
-        nextChoice: student.menus[1]?.letter || null,
-        preferenceRank: 1,
-        wasRebasculed: false
-      });
-
-      rebasculageMap[student.id] = {
-        studentId: student.id,
-        desiredMenu: menuLetter,
-        finalMenu: menuLetter,
-        preferenceRank: 1,
-        wasRebasculé: false,
-        reason: null,
-        compatibility: null
-      };
-    }
-  });
-
-  // Étape 1b : Identifier les étudiants rebasculés (n'ont pas eu leur 1er choix)
-  let rebasculedStudents = students.filter(s => !rebasculageMap[s.id]);
-  const assignedFromRank2OnlyRebasculed = new Set();
-
-  // Étape 2 : Assigner les choix des REBASCULÉS avec priorité absolue
-  // Ils peuvent remplacer les étudiants de 1er choix si nécessaire
-  for (let preferenceRank = 1; preferenceRank < 5; preferenceRank++) {
-    const toAssignThisRank = rebasculedStudents.filter(s => !assignedFromRank2OnlyRebasculed.has(s.id));
-
-    toAssignThisRank.forEach(student => {
-      const menuAtRank = student.menus[preferenceRank];
-      if (!menuAtRank) return;
-
-      const menuLetter = menuAtRank.letter;
-      const group = groupsResult[`menu-${menuLetter}`];
-
-      if (!group) return;
-
-      // Vérifier si le groupe a de la capacité
-      if (group.studentObjects.length < group.capacity) {
-        // Capacité disponible, ajouter directement
-        group.studentObjects.push({
-          student,
-          desiredMenu: student.menus[0].letter,
-          nextChoice: student.menus[preferenceRank + 1]?.letter || null,
-          preferenceRank: preferenceRank + 1,
-          wasRebasculed: true
-        });
-
-        rebasculageMap[student.id] = {
-          studentId: student.id,
-          desiredMenu: student.menus[0].letter,
-          finalMenu: menuLetter,
-          preferenceRank: preferenceRank + 1,
-          wasRebasculé: true,
-          reason: {
-            fromMenu: student.menus[0].letter,
-            toMenu: menuLetter,
-            surplusDemand: group.studentObjects.length + 1,
-            targetSize: group.capacity,
-            compatibilityPercent: 0,
-            text: `Priorité rebasculé: placé au choix ${preferenceRank + 1}`
-          },
-          compatibility: null
-        };
-
-        assignedFromRank2OnlyRebasculed.add(student.id);
-      } else {
-        // Le groupe est plein, rejeter un étudiant de 1er choix
-        const firstChoiceStudents = group.studentObjects.filter(s => s.preferenceRank === 1);
-
-        if (firstChoiceStudents.length > 0) {
-          // Calculer compatibilité de chaque 1er choix avec le menu du rebasculé
-          const withCompatibility = firstChoiceStudents
-            .map(s => ({
-              ...s,
-              compatibility: countCommonActivities(menuLetter, s.desiredMenu, menuActivitiesList)
-            }))
-            .sort((a, b) => b.compatibility - a.compatibility); // Meilleur compatible d'abord
-
-          // Préférer rejeter celui avec 2+ activités en commun
-          const toReject = withCompatibility.find(s => s.compatibility >= 2) || withCompatibility[0];
-
-          if (toReject) {
-            const rejectedStudent = toReject.student;
-            const rejectedId = rejectedStudent.id;
-
-            // Retirer le rejeté du groupe
-            group.studentObjects = group.studentObjects.filter(s => s.student.id !== rejectedId);
-
-            // Ajouter le rebasculé à la place
-            group.studentObjects.push({
-              student,
-              desiredMenu: student.menus[0].letter,
-              nextChoice: student.menus[preferenceRank + 1]?.letter || null,
-              preferenceRank: preferenceRank + 1,
-              wasRebasculed: true
-            });
-
-            rebasculageMap[student.id] = {
-              studentId: student.id,
-              desiredMenu: student.menus[0].letter,
-              finalMenu: menuLetter,
-              preferenceRank: preferenceRank + 1,
-              wasRebasculé: true,
-              reason: {
-                fromMenu: student.menus[0].letter,
-                toMenu: menuLetter,
-                surplusDemand: group.capacity + 1,
-                targetSize: group.capacity,
-                compatibilityPercent: 0,
-                text: `Priorité rebasculé: placé au choix ${preferenceRank + 1}`
-              },
-              compatibility: null
-            };
-
-            assignedFromRank2OnlyRebasculed.add(student.id);
-
-            // Le rejeté n'est plus assigné
-            delete rebasculageMap[rejectedId];
-
-            // Ajouter le rejeté au liste de rebasculés si pas encore dedans
-            if (!rebasculedStudents.includes(rejectedStudent)) {
-              rebasculedStudents.push(rejectedStudent);
-            }
-          }
-        }
-      }
+    group.studentObjects.push({
+      student,
+      desiredMenu: student.menus[0]?.letter || null,
+      nextChoice: preferenceRank === 1 ? student.menus[1]?.letter || null : null,
+      preferenceRank,
+      wasRebasculed: preferenceRank === 2
     });
-  }
 
-  // Étape 3 : Gestion des étudiants non-assignés
-  // Si un étudiant ne peut pas être assigné (tous ses choix sont pleins)
-  const unassignedStudents = students.filter(s => !rebasculageMap[s.id]);
-
-  // Tenter d'assigner les étudiants restants à n'importe quel groupe avec de la place
-  unassignedStudents.forEach(student => {
-    for (let i = 0; i < menus.length; i++) {
-      const menuLetter = menus[i];
-      const group = groupsResult[`menu-${menuLetter}`];
-
-      if (group && group.studentObjects.length < group.capacity) {
-        group.studentObjects.push({
-          student,
-          desiredMenu: menuLetter,
-          nextChoice: null,
-          preferenceRank: null
-        });
-
-        rebasculageMap[student.id] = {
-          studentId: student.id,
-          desiredMenu: student.menus[0]?.letter,
-          finalMenu: menuLetter,
-          preferenceRank: null,
-          wasRebasculé: true,
-          reason: {
-            fromMenu: student.menus[0]?.letter,
-            toMenu: menuLetter,
-            surplusDemand: students.length,
-            targetSize: menus.length * group.capacity,
-            compatibilityPercent: 0,
-            text: 'Tous les choix préférés étaient pleins'
-          },
-          compatibility: null
-        };
-        break;
-      }
-    }
+    rebasculageMap[student.id] = {
+      studentId: student.id,
+      desiredMenu: student.menus[0]?.letter || null,
+      finalMenu: menuLetter,
+      preferenceRank,
+      wasRebasculé: preferenceRank === 2,
+      reason: preferenceRank === 2 ? {
+        fromMenu: student.menus[0]?.letter || null,
+        toMenu: menuLetter,
+        surplusDemand: firstChoiceDemand[student.menus[0]?.letter] || 0,
+        targetSize: groupsResult[`menu-${student.menus[0]?.letter}`]?.capacity || 0,
+        compatibilityPercent: 0,
+        text: '1er choix complet: placement obligatoire au 2ème choix'
+      } : null,
+      compatibility: null
+    };
   });
 
   // Étape 3 : Construire le résultat final
@@ -275,6 +131,136 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
   });
 
   return finalResult;
+}
+
+function assignFirstOrSecondChoice(students, groupsResult) {
+  const graph = new MinCostMaxFlow();
+  const source = graph.addNode();
+  const sink = graph.addNode();
+  const studentNodes = new Map();
+  const menuNodes = new Map();
+  const assignmentEdges = [];
+  const menuLetters = Object.values(groupsResult).map(group => group.letter);
+
+  students.forEach(student => {
+    const first = student.menus[0]?.letter;
+    const second = student.menus[1]?.letter;
+    if (!first || !second) {
+      throw new Error(`L'élève ${student.prenom || ''} ${student.nom || ''} doit avoir au moins deux choix de menu.`);
+    }
+    if (!groupsResult[`menu-${first}`] || !groupsResult[`menu-${second}`]) {
+      throw new Error(`Choix de menu invalide pour ${student.prenom || ''} ${student.nom || ''}.`);
+    }
+
+    const node = graph.addNode();
+    studentNodes.set(student.id, node);
+    graph.addEdge(source, node, 1, 0);
+
+    const firstEdge = graph.addEdge(node, getMenuNode(first), 1, 0);
+    const secondEdge = graph.addEdge(node, getMenuNode(second), 1, 1);
+    assignmentEdges.push({ student, menuLetter: first, preferenceRank: 1, edge: firstEdge });
+    assignmentEdges.push({ student, menuLetter: second, preferenceRank: 2, edge: secondEdge });
+  });
+
+  menuLetters.forEach(letter => {
+    const group = groupsResult[`menu-${letter}`];
+    graph.addEdge(getMenuNode(letter), sink, group.capacity, 0);
+  });
+
+  const result = graph.minCostMaxFlow(source, sink, students.length);
+  if (result.flow < students.length) {
+    throw new Error(
+      `Affectation impossible avec la règle stricte du 2ème choix.\n` +
+      `Chaque élève doit pouvoir être placé sur son 1er ou son 2ème choix, mais les capacités actuelles ne le permettent pas.\n` +
+      `Augmentez les capacités ou modifiez les choix de menus.`
+    );
+  }
+
+  return assignmentEdges
+    .filter(({ edge }) => edge.capacity === 0)
+    .map(({ student, menuLetter, preferenceRank }) => ({ student, menuLetter, preferenceRank }));
+
+  function getMenuNode(letter) {
+    if (!menuNodes.has(letter)) {
+      menuNodes.set(letter, graph.addNode());
+    }
+    return menuNodes.get(letter);
+  }
+}
+
+class MinCostMaxFlow {
+  constructor() {
+    this.graph = [];
+  }
+
+  addNode() {
+    this.graph.push([]);
+    return this.graph.length - 1;
+  }
+
+  addEdge(from, to, capacity, cost) {
+    const forward = { to, rev: this.graph[to].length, capacity, cost };
+    const backward = { to: from, rev: this.graph[from].length, capacity: 0, cost: -cost };
+    this.graph[from].push(forward);
+    this.graph[to].push(backward);
+    return forward;
+  }
+
+  minCostMaxFlow(source, sink, maxFlow) {
+    let flow = 0;
+    let cost = 0;
+    const nodeCount = this.graph.length;
+
+    while (flow < maxFlow) {
+      const dist = Array(nodeCount).fill(Infinity);
+      const prevNode = Array(nodeCount).fill(-1);
+      const prevEdge = Array(nodeCount).fill(-1);
+      const inQueue = Array(nodeCount).fill(false);
+      const queue = [source];
+
+      dist[source] = 0;
+      inQueue[source] = true;
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        inQueue[current] = false;
+
+        this.graph[current].forEach((edge, edgeIndex) => {
+          if (edge.capacity <= 0) return;
+
+          const nextDist = dist[current] + edge.cost;
+          if (nextDist < dist[edge.to]) {
+            dist[edge.to] = nextDist;
+            prevNode[edge.to] = current;
+            prevEdge[edge.to] = edgeIndex;
+
+            if (!inQueue[edge.to]) {
+              queue.push(edge.to);
+              inQueue[edge.to] = true;
+            }
+          }
+        });
+      }
+
+      if (dist[sink] === Infinity) break;
+
+      let addFlow = maxFlow - flow;
+      for (let node = sink; node !== source; node = prevNode[node]) {
+        addFlow = Math.min(addFlow, this.graph[prevNode[node]][prevEdge[node]].capacity);
+      }
+
+      for (let node = sink; node !== source; node = prevNode[node]) {
+        const edge = this.graph[prevNode[node]][prevEdge[node]];
+        edge.capacity -= addFlow;
+        this.graph[edge.to][edge.rev].capacity += addFlow;
+      }
+
+      flow += addFlow;
+      cost += addFlow * dist[sink];
+    }
+
+    return { flow, cost };
+  }
 }
 
 function countCommonActivities(menu1, menu2, menuActivitiesList) {

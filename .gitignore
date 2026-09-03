@@ -4,3 +4,6 @@ node_modules/
 *.log
 .vscode/
 .idea/
+.claude/
+~$*.xlsx
+Choix des menus EPS*.xlsx
