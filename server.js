@@ -190,6 +190,35 @@ app.post('/api/export', (req, res) => {
       xlsx.utils.book_append_sheet(wb, ws, sheetName);
     });
 
+    // Feuille "Résultats bruts": tous les élèves avec leurs choix et notes d'origine
+    const groupsArray = Object.values(groups);
+    const maxChoices = Math.max(
+      1,
+      ...groupsArray.flatMap(g => g.members.map(m => (m.allMenus || []).length))
+    );
+
+    const rawHeaders = [
+      'Nom', 'Prénom', 'Classe', 'Menu attribué', 'Rang du choix retenu',
+      ...Array.from({ length: maxChoices }, (_, i) => `Choix ${i + 1}`),
+      'Activité T1', 'Note T1', 'Activité T2', 'Note T2', 'Activité T3', 'Note T3'
+    ];
+
+    const rawRows = groupsArray.flatMap(groupData =>
+      groupData.members.map(m => {
+        const sortedMenus = [...(m.allMenus || [])].sort((a, b) => a.order - b.order);
+        const choiceCells = Array.from({ length: maxChoices }, (_, i) => sortedMenus[i]?.letter || '');
+        return [
+          m.nom, m.prenom, m.classe, groupData.letter, m.chosenMenuOrder,
+          ...choiceCells,
+          m.note1Activity, m.note1, m.note2Activity, m.note2, m.note3Activity, m.note3
+        ];
+      })
+    );
+
+    const rawWs = xlsx.utils.aoa_to_sheet([rawHeaders, ...rawRows]);
+    rawWs['!cols'] = rawHeaders.map(() => ({ wch: 14 }));
+    xlsx.utils.book_append_sheet(wb, rawWs, 'Résultats bruts');
+
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="groupes_${new Date().toISOString().slice(0, 10)}.xlsx"`
