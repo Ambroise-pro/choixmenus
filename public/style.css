@@ -734,6 +734,13 @@ section h2 {
   font-weight: 500;
 }
 
+.student-assigned {
+  font-size: 0.9em;
+  color: #48bb78;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
 .btn-rebalance {
   background: #667eea;
   color: white;

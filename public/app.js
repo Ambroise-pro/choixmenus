@@ -265,15 +265,32 @@ function showChoiceDetailsModal(menu, order, students) {
     classe.className = 'student-classe';
     classe.textContent = student.classe;
 
+    // Trouver le menu actuel de l'étudiant
+    let currentMenu = null;
+    if (currentData && currentData.groups) {
+      for (const [key, group] of Object.entries(currentData.groups)) {
+        if (group.members && group.members.some(m => m.nom === student.nom && m.prenom === student.prenom)) {
+          currentMenu = group.letter;
+          break;
+        }
+      }
+    }
+
     // Afficher l'ordre des choix
     const menus = student.menus || [];
     const choicesDiv = document.createElement('div');
     choicesDiv.className = 'student-choices';
     choicesDiv.textContent = `Choix: ${menus.map(m => m.letter).join(' → ')}`;
 
+    // Afficher le menu actuel
+    const assignedDiv = document.createElement('div');
+    assignedDiv.className = 'student-assigned';
+    assignedDiv.textContent = currentMenu ? `📍 Placé dans: Menu ${currentMenu}` : 'Non assigné';
+
     div.appendChild(name);
     div.appendChild(classe);
     div.appendChild(choicesDiv);
+    div.appendChild(assignedDiv);
 
     // Ajouter bouton de rebasculage
     const rebalanceBtn = document.createElement('button');
