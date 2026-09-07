@@ -174,9 +174,12 @@ function displayRawStats(students) {
         if (stats[letter] !== undefined) {
           stats[letter][order]++;
           studentsByMenuAndOrder[letter][order].push({
+            id: student.id,
             prenom: student.prenom,
             nom: student.nom,
-            classe: student.classe
+            classe: student.classe,
+            menus: student.menus,
+            allMenus: student.allMenus
           });
         }
       });
@@ -262,12 +265,129 @@ function showChoiceDetailsModal(menu, order, students) {
     classe.className = 'student-classe';
     classe.textContent = student.classe;
 
+    // Afficher l'ordre des choix
+    const menus = student.menus || [];
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'student-choices';
+    choicesDiv.textContent = `Choix: ${menus.map(m => m.letter).join(' → ')}`;
+
     div.appendChild(name);
     div.appendChild(classe);
+    div.appendChild(choicesDiv);
+
+    // Ajouter bouton de rebasculage
+    const rebalanceBtn = document.createElement('button');
+    rebalanceBtn.className = 'btn-rebalance';
+    rebalanceBtn.textContent = '🔄 Rebasculer';
+    rebalanceBtn.onclick = (e) => {
+      e.stopPropagation();
+      showRebalanceModal(student);
+    };
+    div.appendChild(rebalanceBtn);
+
     studentsList.appendChild(div);
   });
 
   modal.classList.remove('hidden');
+}
+
+function showRebalanceModal(student) {
+  if (!currentData || !currentData.groups) return;
+
+  const menus = Object.keys(currentData.groups).map(k => currentData.groups[k].letter);
+  const currentMenu = Object.entries(currentData.groups).find(([_, g]) =>
+    g.members.some(m => m.nom === student.nom && m.prenom === student.prenom)
+  )?.[1]?.letter;
+
+  const modal = document.getElementById('changeGroupModal');
+  const info = document.getElementById('changeGroupInfo');
+  const options = document.getElementById('groupOptions');
+
+  info.textContent = `Rebasculer ${student.prenom} ${student.nom} (actuellement: Menu ${currentMenu || '?'})`;
+
+  options.innerHTML = '';
+  menus.forEach(menu => {
+    if (menu === currentMenu) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'group-option-btn';
+    btn.textContent = `→ Menu ${menu}`;
+    btn.onclick = () => performRebalance(student, currentMenu, menu, modal);
+    options.appendChild(btn);
+  });
+
+  modal.classList.remove('hidden');
+}
+
+function performRebalance(student, fromMenu, toMenu, modal) {
+  if (!currentData || !currentData.groups) return;
+
+  // Trouver l'étudiant dans son groupe actuel
+  const fromGroup = currentData.groups[`menu-${fromMenu}`];
+  const toGroup = currentData.groups[`menu-${toMenu}`];
+
+  if (!fromGroup || !toGroup) return;
+
+  const memberIndex = fromGroup.members.findIndex(m => m.nom === student.nom && m.prenom === student.prenom);
+  if (memberIndex === -1) return;
+
+  const member = fromGroup.members[memberIndex];
+
+  // Retirer du groupe actuel
+  fromGroup.members.splice(memberIndex, 1);
+  fromGroup.count = fromGroup.members.length;
+
+  // Ajouter au nouveau groupe
+  member.chosenMenuOrder = 2; // Marquer comme rebasculé
+  toGroup.members.push(member);
+  toGroup.count = toGroup.members.length;
+
+  // Recalculer les préférences
+  updateGroupPreferences(fromGroup);
+  updateGroupPreferences(toGroup);
+
+  // Fermer le modal et rafraîchir l'affichage
+  modal.classList.add('hidden');
+  document.getElementById('choiceDetailsModal').classList.add('hidden');
+  refreshGroupsDisplay();
+}
+
+function updateStats() {
+  if (!currentData) return;
+  const { students, groups } = currentData;
+
+  document.getElementById('studentCount').textContent = students.length;
+  const groupsCount = Object.keys(groups).length;
+  document.getElementById('groupCount').textContent = groupsCount;
+  const avgSize = groupsCount > 0 ? (students.length / groupsCount).toFixed(1) : 0;
+  document.getElementById('avgGroupSize').textContent = avgSize;
+}
+
+function updateGroupPreferences(group) {
+  group.preferences = {};
+  group.members.forEach(member => {
+    const menuOrder = member.chosenMenuOrder || 1;
+    const label = ['1ère choix', '2ème choix', '3ème choix', '4ème choix'][menuOrder - 1] || 'autre';
+    const menuName = `Menu ${group.letter}`;
+    if (!group.preferences[menuName]) {
+      group.preferences[menuName] = 0;
+    }
+    group.preferences[menuName]++;
+  });
+}
+
+function refreshGroupsDisplay() {
+  if (!currentData) return;
+
+  groupsContainer.innerHTML = '';
+  Object.entries(currentData.groups).forEach(([key, groupData]) => {
+    const card = createGroupCard(key, groupData);
+    groupsContainer.appendChild(card);
+  });
+
+  // Recalculer les stats brutes
+  displayRawStats(currentData.students);
+  updateStats();
 }
 
 function createGroupCard(groupKey, groupData) {

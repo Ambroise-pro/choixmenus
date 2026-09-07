@@ -727,6 +727,55 @@ section h2 {
   color: #666;
 }
 
+.student-choices {
+  font-size: 0.85em;
+  color: #667eea;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.btn-rebalance {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 100%;
+  transition: background 0.3s;
+  font-weight: 600;
+}
+
+.btn-rebalance:hover {
+  background: #5568d3;
+}
+
+.group-option-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #f0f2ff;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.group-option-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+#groupOptions {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 /* Footer */
 footer {
   text-align: center;
