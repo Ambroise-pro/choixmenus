@@ -309,12 +309,35 @@ function showChoiceDetailsModal(menu, order, students) {
 }
 
 function showRebalanceModal(student) {
-  if (!currentData || !currentData.groups) return;
+  console.log('showRebalanceModal called with:', student);
+  console.log('currentData:', currentData);
+
+  if (!currentData || !currentData.groups) {
+    console.error('currentData or groups not found');
+    return;
+  }
 
   const menus = Object.keys(currentData.groups).map(k => currentData.groups[k].letter);
-  const currentMenu = Object.entries(currentData.groups).find(([_, g]) =>
-    g.members.some(m => m.nom === student.nom && m.prenom === student.prenom)
-  )?.[1]?.letter;
+  console.log('Available menus:', menus);
+
+  // Chercher par ID d'abord, puis par nom/prénom
+  let currentMenu = null;
+  for (const [key, g] of Object.entries(currentData.groups)) {
+    const found = g.members.find(m => {
+      // Comparer par ID si disponible
+      if (student.id !== undefined && m.id !== undefined) {
+        return m.id === student.id;
+      }
+      // Sinon comparer par nom/prénom
+      return m.nom === student.nom && m.prenom === student.prenom;
+    });
+    if (found) {
+      currentMenu = g.letter;
+      break;
+    }
+  }
+
+  console.log('Current menu found:', currentMenu);
 
   const modal = document.getElementById('changeGroupModal');
   const info = document.getElementById('changeGroupInfo');
@@ -337,16 +360,37 @@ function showRebalanceModal(student) {
 }
 
 function performRebalance(student, fromMenu, toMenu, modal) {
-  if (!currentData || !currentData.groups) return;
+  console.log('performRebalance called:', {student, fromMenu, toMenu});
+
+  if (!currentData || !currentData.groups) {
+    console.error('currentData or groups not found');
+    return;
+  }
 
   // Trouver l'étudiant dans son groupe actuel
   const fromGroup = currentData.groups[`menu-${fromMenu}`];
   const toGroup = currentData.groups[`menu-${toMenu}`];
 
-  if (!fromGroup || !toGroup) return;
+  console.log('Groups found:', {fromGroup: !!fromGroup, toGroup: !!toGroup});
 
-  const memberIndex = fromGroup.members.findIndex(m => m.nom === student.nom && m.prenom === student.prenom);
-  if (memberIndex === -1) return;
+  if (!fromGroup || !toGroup) {
+    console.error('From or to group not found');
+    return;
+  }
+
+  const memberIndex = fromGroup.members.findIndex(m => {
+    if (student.id !== undefined && m.id !== undefined) {
+      return m.id === student.id;
+    }
+    return m.nom === student.nom && m.prenom === student.prenom;
+  });
+
+  console.log('Member found at index:', memberIndex);
+
+  if (memberIndex === -1) {
+    console.error('Member not found in group');
+    return;
+  }
 
   const member = fromGroup.members[memberIndex];
 
