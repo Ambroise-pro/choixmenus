@@ -684,20 +684,49 @@ function displaySimulationResults(result) {
       `).join('')
     : '<p class="small">Aucun élève</p>';
 
-  const menuListsHtml = Object.entries(result.byMenu)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([label, data]) => `
-      <details class="simulation-menu-details">
-        <summary>${menuLabel(label, data)} — ${data.assigned}/${data.capacity} élève${data.assigned > 1 ? 's' : ''}</summary>
-        <div class="group-members">${renderStudentList(data.members)}</div>
-      </details>
-    `).join('');
+  const activitiesByBaseMenu = {};
+  Object.values(currentData.groups).forEach(g => { activitiesByBaseMenu[g.letter] = g.activities; });
 
-  const unassignedListHtml = result.unassignedCount > 0 ? `
-    <details class="simulation-menu-details" open>
-      <summary>⚠️ Non assignés — ${result.unassignedCount} élève${result.unassignedCount > 1 ? 's' : ''}</summary>
-      <div class="group-members">${renderStudentList(result.unassignedStudents)}</div>
-    </details>
+  const renderPreferences = (members) => {
+    const dist = {};
+    members.forEach(m => {
+      const key = `Menu ${m.desiredMenu || 'N/A'}`;
+      dist[key] = (dist[key] || 0) + 1;
+    });
+    return Object.entries(dist)
+      .map(([menu, count]) => `<div class="preference-item">${escapeHtml(menu)}: ${count}</div>`)
+      .join('');
+  };
+
+  const simulationGroupCardsHtml = Object.entries(result.byMenu)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, data]) => {
+      const activities = activitiesByBaseMenu[data.baseMenu || label];
+      return `
+        <div class="group-card">
+          <div class="group-header">
+            <div class="group-title">${menuLabel(label, data)}</div>
+            ${activities && activities.length ? `<div class="group-activities"><strong>Activités :</strong> ${escapeHtml(activities.join(' • '))}</div>` : ''}
+            <div class="group-stats"><span>👥 ${data.assigned} étudiant${data.assigned > 1 ? 's' : ''}</span></div>
+          </div>
+          <div class="group-body">
+            <div class="group-members">${renderStudentList(data.members)}</div>
+            <div class="preferences"><strong>Préférences :</strong>${renderPreferences(data.members)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  const unassignedCardHtml = result.unassignedCount > 0 ? `
+    <div class="group-card">
+      <div class="group-header">
+        <div class="group-title">⚠️ Non assignés</div>
+        <div class="group-stats"><span>👥 ${result.unassignedCount} étudiant${result.unassignedCount > 1 ? 's' : ''}</span></div>
+      </div>
+      <div class="group-body">
+        <div class="group-members">${renderStudentList(result.unassignedStudents)}</div>
+      </div>
+    </div>
   ` : '';
 
   resultsEl.innerHTML = `
@@ -724,10 +753,10 @@ function displaySimulationResults(result) {
       <thead><tr><th>Menu</th><th>Capacité testée</th><th>Élèves assignés</th><th>Remplissage</th></tr></thead>
       <tbody>${byMenuRowsHtml}</tbody>
     </table>
-    <h4 class="simulation-lists-title">Listes des élèves par menu (configuration testée)</h4>
-    <div class="simulation-menu-lists">
-      ${menuListsHtml}
-      ${unassignedListHtml}
+    <h4 class="simulation-lists-title">Nouveaux menus (configuration testée)</h4>
+    <div class="groups-container">
+      ${simulationGroupCardsHtml}
+      ${unassignedCardHtml}
     </div>
   `;
 }

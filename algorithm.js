@@ -262,7 +262,8 @@ function simulateMenuCapacities(students, capacities) {
       nom: student.nom,
       prenom: student.prenom,
       classe: student.classe,
-      preferenceRank
+      preferenceRank,
+      desiredMenu: student.menus[0]?.letter || null
     });
   });
   Object.values(membersByLetter).forEach(members => {

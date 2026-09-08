@@ -756,35 +756,13 @@ section h2 {
 .simulation-submenu-note {
   font-size: 0.85em;
   font-weight: 400;
-  color: #666;
+  opacity: 0.8;
 }
 
 .simulation-lists-title {
   color: #333;
   font-size: 1em;
   margin: 20px 0 10px;
-}
-
-.simulation-menu-lists {
-  display: grid;
-  gap: 10px;
-}
-
-.simulation-menu-details {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
-.simulation-menu-details summary {
-  cursor: pointer;
-  font-weight: 600;
-  color: #333;
-}
-
-.simulation-menu-details .group-members {
-  margin-top: 10px;
 }
 
 .member-rank {
