@@ -3,7 +3,7 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
-const { createBalancedGroups } = require('./algorithm');
+const { createBalancedGroups, simulateMenuCapacities } = require('./algorithm');
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -162,6 +162,25 @@ app.get('/api/demo-load', (req, res) => {
     } else {
       res.status(500).json({ error: error.message });
     }
+  }
+});
+
+app.post('/api/simulate', (req, res) => {
+  try {
+    const { students, capacities } = req.body;
+
+    if (!Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ error: 'Aucun étudiant fourni' });
+    }
+    if (!capacities || typeof capacities !== 'object' || Array.isArray(capacities)) {
+      return res.status(400).json({ error: 'Capacités de menus manquantes' });
+    }
+
+    const result = simulateMenuCapacities(students, capacities);
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur simulation:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

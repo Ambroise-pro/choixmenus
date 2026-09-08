@@ -106,6 +106,7 @@ function createBalancedGroups(students, maxStudentsPerGroup = null, numMenus = n
     finalResult[`menu-${letter}`] = {
       name: `Menu ${letter}`,
       letter,
+      capacity: groupData.capacity,
       activities: menuActivities.map(activity => formatActivityName(activity)),
       members: studentsInMenu.map(m => {
         const assignedMenuOrder = m.menus.findIndex(menu => menu.letter === letter) + 1;
@@ -186,6 +187,83 @@ function assignFirstOrSecondChoice(students, groupsResult) {
     }
     return menuNodes.get(letter);
   }
+}
+
+// Simule une répartition avec des capacités personnalisées par menu (0 = menu supprimé),
+// sans la règle stricte "1er ou 2ème choix", pour explorer l'effet de capacités
+// différentes sur le nombre d'élèves obtenant leur choix préféré.
+function simulateMenuCapacities(students, capacities) {
+  const availableMenus = Object.entries(capacities || {})
+    .filter(([, capacity]) => Number(capacity) > 0)
+    .map(([letter, capacity]) => ({ letter, capacity: Math.floor(Number(capacity)) }));
+
+  if (availableMenus.length === 0) {
+    throw new Error('Aucun menu disponible: donnez une capacité à au moins un menu.');
+  }
+
+  const graph = new MinCostMaxFlow();
+  const source = graph.addNode();
+  const sink = graph.addNode();
+  const menuNodes = new Map();
+  const assignmentEdges = [];
+
+  function getMenuNode(letter) {
+    if (!menuNodes.has(letter)) {
+      menuNodes.set(letter, graph.addNode());
+    }
+    return menuNodes.get(letter);
+  }
+
+  students.forEach(student => {
+    const node = graph.addNode();
+    graph.addEdge(source, node, 1, 0);
+
+    (student.menus || []).forEach(menu => {
+      const available = availableMenus.find(m => m.letter === menu.letter);
+      if (!available) return;
+      const edge = graph.addEdge(node, getMenuNode(menu.letter), 1, menu.order - 1);
+      assignmentEdges.push({ student, menuLetter: menu.letter, preferenceRank: menu.order, edge });
+    });
+  });
+
+  availableMenus.forEach(({ letter, capacity }) => {
+    graph.addEdge(getMenuNode(letter), sink, capacity, 0);
+  });
+
+  graph.minCostMaxFlow(source, sink, students.length);
+
+  const assignments = assignmentEdges
+    .filter(({ edge }) => edge.capacity === 0)
+    .map(({ student, menuLetter, preferenceRank }) => ({ student, menuLetter, preferenceRank }));
+
+  const assignedStudentIds = new Set(assignments.map(a => a.student.id));
+  const unassignedStudents = students.filter(s => !assignedStudentIds.has(s.id));
+
+  const byRank = {};
+  assignments.forEach(({ preferenceRank }) => {
+    byRank[preferenceRank] = (byRank[preferenceRank] || 0) + 1;
+  });
+
+  const byMenu = {};
+  availableMenus.forEach(({ letter, capacity }) => {
+    byMenu[letter] = { capacity, assigned: 0 };
+  });
+  assignments.forEach(({ menuLetter }) => {
+    byMenu[menuLetter].assigned += 1;
+  });
+
+  const firstChoiceCount = byRank[1] || 0;
+
+  return {
+    totalStudents: students.length,
+    assignedCount: assignments.length,
+    unassignedCount: unassignedStudents.length,
+    unassignedStudents: unassignedStudents.map(s => ({ nom: s.nom, prenom: s.prenom, classe: s.classe })),
+    byRank,
+    byMenu,
+    firstChoiceCount,
+    firstChoicePercent: students.length ? Math.round((firstChoiceCount / students.length) * 1000) / 10 : 0
+  };
 }
 
 class MinCostMaxFlow {
@@ -303,4 +381,4 @@ function getPreferencesDistribution(members) {
   return dist;
 }
 
-module.exports = { createBalancedGroups };
+module.exports = { createBalancedGroups, simulateMenuCapacities };

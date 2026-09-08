@@ -77,6 +77,20 @@
           <div class="raw-stats-table" id="rawStatsTable"></div>
         </div>
 
+        <div class="simulation-section" id="simulationSection">
+          <h3>🔬 Simuler d'autres capacités de menus</h3>
+          <p class="small">
+            Modifiez la capacité de chaque menu (0 = menu supprimé, une valeur plus haute = menu doublé/agrandi)
+            pour voir l'effet sur le nombre d'élèves obtenant leur 1er choix, sans modifier les groupes actuels.
+          </p>
+          <div class="simulation-table" id="simulationCapacities"></div>
+          <div class="controls">
+            <button id="simulateBtn" class="btn-primary">🧪 Tester cette configuration</button>
+            <button id="resetSimulationBtn" class="btn-secondary">↺ Réinitialiser</button>
+          </div>
+          <div id="simulationResults" class="simulation-results hidden"></div>
+        </div>
+
         <div class="groups-container" id="groupsContainer">
           <!-- Les groupes seront affichés ici -->
         </div>

@@ -130,6 +130,9 @@ function displayResults() {
   // Afficher les statistiques brutes
   displayRawStats(students);
 
+  // Initialiser la section de simulation de capacités
+  initSimulationSection(students, groups);
+
   // Afficher les groupes (par menu)
   groupsContainer.innerHTML = '';
   Object.entries(groups)
@@ -451,6 +454,192 @@ function refreshGroupsDisplay() {
   updateStats();
 }
 
+function initSimulationSection(students, groups) {
+  const container = document.getElementById('simulationCapacities');
+  const resultsEl = document.getElementById('simulationResults');
+  container.innerHTML = '';
+  resultsEl.classList.add('hidden');
+  resultsEl.innerHTML = '';
+
+  const menuLetters = Object.values(groups)
+    .map(g => g.letter)
+    .sort((a, b) => a.localeCompare(b));
+
+  const firstChoiceDemand = {};
+  menuLetters.forEach(letter => { firstChoiceDemand[letter] = 0; });
+  students.forEach(s => {
+    const first = s.menus && s.menus[0];
+    if (first && firstChoiceDemand[first.letter] !== undefined) {
+      firstChoiceDemand[first.letter]++;
+    }
+  });
+
+  const table = document.createElement('table');
+  table.className = 'stats-table simulation-capacities-table';
+
+  const thead = document.createElement('thead');
+  thead.innerHTML = '<tr><th>Menu</th><th>1er choix demandé par</th><th>Capacité actuelle</th><th>Capacité à tester</th></tr>';
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  menuLetters.forEach(letter => {
+    const groupData = Object.values(groups).find(g => g.letter === letter);
+    const currentCapacity = groupData?.capacity ?? groupData?.count ?? 0;
+
+    const row = document.createElement('tr');
+
+    const menuCell = document.createElement('td');
+    menuCell.className = 'menu-label';
+    menuCell.textContent = `Menu ${letter}`;
+    row.appendChild(menuCell);
+
+    const demandCell = document.createElement('td');
+    demandCell.textContent = firstChoiceDemand[letter];
+    row.appendChild(demandCell);
+
+    const currentCapacityCell = document.createElement('td');
+    currentCapacityCell.textContent = currentCapacity;
+    row.appendChild(currentCapacityCell);
+
+    const inputCell = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.value = currentCapacity;
+    input.className = 'input-capacity';
+    input.dataset.letter = letter;
+    inputCell.appendChild(input);
+    row.appendChild(inputCell);
+
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+
+  container.appendChild(table);
+}
+
+function getBaselineStats(groups) {
+  const byRank = {};
+  let total = 0;
+  Object.values(groups).forEach(g => {
+    g.members.forEach(m => {
+      const rank = m.chosenMenuOrder || 0;
+      byRank[rank] = (byRank[rank] || 0) + 1;
+      total++;
+    });
+  });
+  const firstChoiceCount = byRank[1] || 0;
+  return {
+    byRank,
+    total,
+    firstChoiceCount,
+    firstChoicePercent: total ? Math.round((firstChoiceCount / total) * 1000) / 10 : 0
+  };
+}
+
+async function runSimulation() {
+  if (!currentData) return;
+
+  const inputs = document.querySelectorAll('#simulationCapacities .input-capacity');
+  const capacities = {};
+  inputs.forEach(input => {
+    capacities[input.dataset.letter] = parseInt(input.value, 10) || 0;
+  });
+
+  const resultsEl = document.getElementById('simulationResults');
+  resultsEl.classList.remove('hidden');
+  resultsEl.innerHTML = '<p class="loading">Simulation en cours...</p>';
+
+  try {
+    const response = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ students: currentData.students, capacities })
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Erreur lors de la simulation');
+
+    displaySimulationResults(result);
+  } catch (error) {
+    resultsEl.innerHTML = `<p class="simulation-error">${error.message}</p>`;
+  }
+}
+
+function displaySimulationResults(result) {
+  const baseline = getBaselineStats(currentData.groups);
+  const resultsEl = document.getElementById('simulationResults');
+
+  const delta = result.firstChoiceCount - baseline.firstChoiceCount;
+  const deltaText = delta === 0
+    ? 'Aucun changement'
+    : (delta > 0 ? `+${delta} élève${delta > 1 ? 's' : ''}` : `${delta} élève${delta < -1 ? 's' : ''}`);
+  const deltaClass = delta > 0 ? 'delta-positive' : (delta < 0 ? 'delta-negative' : '');
+
+  const maxRank = Math.max(
+    1,
+    ...Object.keys(baseline.byRank).map(Number),
+    ...Object.keys(result.byRank).map(Number)
+  );
+
+  let rankRowsHtml = '';
+  for (let rank = 1; rank <= maxRank; rank++) {
+    rankRowsHtml += `
+      <tr>
+        <td>${rank === 1 ? '1er choix' : `${rank}ème choix`}</td>
+        <td>${baseline.byRank[rank] || 0}</td>
+        <td>${result.byRank[rank] || 0}</td>
+      </tr>
+    `;
+  }
+  if (result.unassignedCount > 0) {
+    rankRowsHtml += `
+      <tr>
+        <td>Non assignés</td>
+        <td>0</td>
+        <td>${result.unassignedCount}</td>
+      </tr>
+    `;
+  }
+
+  const byMenuRowsHtml = Object.entries(result.byMenu)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([letter, data]) => `
+      <tr>
+        <td class="menu-label">Menu ${letter}</td>
+        <td>${data.capacity}</td>
+        <td>${data.assigned}</td>
+        <td>${data.capacity ? Math.round((data.assigned / data.capacity) * 100) : 0}%</td>
+      </tr>
+    `).join('');
+
+  resultsEl.innerHTML = `
+    <div class="simulation-summary">
+      <div class="simulation-summary-card">
+        <div class="simulation-summary-label">Configuration actuelle</div>
+        <div class="simulation-summary-value">${baseline.firstChoiceCount} / ${baseline.total} (${baseline.firstChoicePercent}%)</div>
+      </div>
+      <div class="simulation-summary-card">
+        <div class="simulation-summary-label">Configuration testée</div>
+        <div class="simulation-summary-value">${result.firstChoiceCount} / ${result.totalStudents} (${result.firstChoicePercent}%)</div>
+      </div>
+      <div class="simulation-summary-card ${deltaClass}">
+        <div class="simulation-summary-label">Évolution des 1ers choix</div>
+        <div class="simulation-summary-value">${deltaText}</div>
+      </div>
+    </div>
+    ${result.unassignedCount > 0 ? `<p class="simulation-warning">⚠️ ${result.unassignedCount} élève(s) ne peuvent être placés dans aucun menu avec cette configuration.</p>` : ''}
+    <table class="stats-table simulation-rank-table">
+      <thead><tr><th>Rang obtenu</th><th>Actuellement</th><th>Simulation</th></tr></thead>
+      <tbody>${rankRowsHtml}</tbody>
+    </table>
+    <table class="stats-table simulation-menu-table">
+      <thead><tr><th>Menu</th><th>Capacité testée</th><th>Élèves assignés</th><th>Remplissage</th></tr></thead>
+      <tbody>${byMenuRowsHtml}</tbody>
+    </table>
+  `;
+}
+
 function createGroupCard(groupKey, groupData) {
   const card = document.createElement('div');
   card.className = 'group-card';
@@ -616,6 +805,13 @@ newFileBtn.addEventListener('click', () => {
 });
 
 createGroupsBtn.addEventListener('click', createGroups);
+
+document.getElementById('simulateBtn').addEventListener('click', runSimulation);
+
+document.getElementById('resetSimulationBtn').addEventListener('click', () => {
+  if (!currentData) return;
+  initSimulationSection(currentData.students, currentData.groups);
+});
 
 function showJustificationModal(member) {
   const rebasculage = member.rebasculage;
