@@ -505,11 +505,10 @@ function initSimulationSection(students, groups) {
     inputCell.className = 'simulation-capacity-cell';
 
     const presets = [
-      { value: 0, label: 'Menu supprimé' },
-      { value: currentCapacity, label: `Normal (${currentCapacity})` },
-      { value: Math.round(currentCapacity * 1.5), label: `×1,5 (${Math.round(currentCapacity * 1.5)})` },
-      { value: currentCapacity * 2, label: `×2 (${currentCapacity * 2})` },
-      { value: currentCapacity * 3, label: `×3 (${currentCapacity * 3})` }
+      { capacity: 0, groups: 1, label: 'Menu supprimé' },
+      { capacity: currentCapacity, groups: 1, label: `Normal (${currentCapacity})` },
+      { capacity: currentCapacity * 2, groups: 2, label: `×2 → Menu ${letter}1 + Menu ${letter}2 (${currentCapacity} chacun)` },
+      { capacity: currentCapacity * 3, groups: 3, label: `×3 → Menu ${letter}1/2/3 (${currentCapacity} chacun)` }
     ];
 
     const input = document.createElement('input');
@@ -517,33 +516,53 @@ function initSimulationSection(students, groups) {
     input.min = '0';
     input.value = currentCapacity;
     input.className = 'input-capacity';
+    input.title = 'Capacité totale pour ce menu';
     input.dataset.letter = letter;
+
+    const groupsInput = document.createElement('input');
+    groupsInput.type = 'number';
+    groupsInput.min = '1';
+    groupsInput.value = '1';
+    groupsInput.className = 'input-groups';
+    groupsInput.title = 'Nombre de groupes distincts (listes séparées) pour ce menu';
 
     const select = document.createElement('select');
     select.className = 'simulation-capacity-preset';
-    presets.forEach(preset => {
+    presets.forEach((preset, idx) => {
       const option = document.createElement('option');
-      option.value = preset.value;
+      option.value = String(idx);
       option.textContent = preset.label;
       select.appendChild(option);
     });
     const customOption = document.createElement('option');
-    customOption.value = '';
+    customOption.value = 'custom';
     customOption.textContent = 'Personnalisé';
     customOption.hidden = true;
     select.appendChild(customOption);
-    select.value = currentCapacity;
+    select.value = '1'; // Normal
+
+    const syncPresetSelection = () => {
+      const matchIdx = presets.findIndex(p => String(p.capacity) === input.value && String(p.groups) === groupsInput.value);
+      select.value = matchIdx >= 0 ? String(matchIdx) : 'custom';
+    };
 
     select.addEventListener('change', () => {
-      input.value = select.value;
+      if (select.value === 'custom') return;
+      const preset = presets[Number(select.value)];
+      input.value = preset.capacity;
+      groupsInput.value = preset.groups;
     });
-    input.addEventListener('input', () => {
-      const matchingPreset = presets.find(p => String(p.value) === input.value);
-      select.value = matchingPreset ? String(matchingPreset.value) : '';
-    });
+    input.addEventListener('input', syncPresetSelection);
+    groupsInput.addEventListener('input', syncPresetSelection);
+
+    const groupsLabel = document.createElement('span');
+    groupsLabel.className = 'simulation-field-label';
+    groupsLabel.textContent = 'groupes';
 
     inputCell.appendChild(select);
     inputCell.appendChild(input);
+    inputCell.appendChild(groupsInput);
+    inputCell.appendChild(groupsLabel);
     row.appendChild(inputCell);
 
     tbody.appendChild(row);
@@ -575,10 +594,15 @@ function getBaselineStats(groups) {
 async function runSimulation() {
   if (!currentData) return;
 
-  const inputs = document.querySelectorAll('#simulationCapacities .input-capacity');
+  const rows = document.querySelectorAll('#simulationCapacities tbody tr');
   const capacities = {};
-  inputs.forEach(input => {
-    capacities[input.dataset.letter] = parseInt(input.value, 10) || 0;
+  rows.forEach(row => {
+    const capacityInput = row.querySelector('.input-capacity');
+    const groupsInput = row.querySelector('.input-groups');
+    capacities[capacityInput.dataset.letter] = {
+      capacity: parseInt(capacityInput.value, 10) || 0,
+      groups: Math.max(1, parseInt(groupsInput.value, 10) || 1)
+    };
   });
 
   const resultsEl = document.getElementById('simulationResults');
@@ -637,11 +661,14 @@ function displaySimulationResults(result) {
     `;
   }
 
+  const menuLabel = (label, data) => `Menu ${label}` +
+    (data.groupCount > 1 ? ` <span class="simulation-submenu-note">(groupe ${data.groupIndex}/${data.groupCount} du menu ${data.baseMenu})</span>` : '');
+
   const byMenuRowsHtml = Object.entries(result.byMenu)
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([letter, data]) => `
+    .map(([label, data]) => `
       <tr>
-        <td class="menu-label">Menu ${letter}</td>
+        <td class="menu-label">${menuLabel(label, data)}</td>
         <td>${data.capacity}</td>
         <td>${data.assigned}</td>
         <td>${data.capacity ? Math.round((data.assigned / data.capacity) * 100) : 0}%</td>
@@ -659,9 +686,9 @@ function displaySimulationResults(result) {
 
   const menuListsHtml = Object.entries(result.byMenu)
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([letter, data]) => `
+    .map(([label, data]) => `
       <details class="simulation-menu-details">
-        <summary>Menu ${letter} — ${data.assigned}/${data.capacity} élève${data.assigned > 1 ? 's' : ''}</summary>
+        <summary>${menuLabel(label, data)} — ${data.assigned}/${data.capacity} élève${data.assigned > 1 ? 's' : ''}</summary>
         <div class="group-members">${renderStudentList(data.members)}</div>
       </details>
     `).join('');

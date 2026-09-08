@@ -192,10 +192,20 @@ function assignFirstOrSecondChoice(students, groupsResult) {
 // Simule une répartition avec des capacités personnalisées par menu (0 = menu supprimé),
 // sans la règle stricte "1er ou 2ème choix", pour explorer l'effet de capacités
 // différentes sur le nombre d'élèves obtenant leur choix préféré.
+function splitCapacity(total, parts) {
+  const base = Math.floor(total / parts);
+  const remainder = total % parts;
+  return Array.from({ length: parts }, (_, i) => base + (i < remainder ? 1 : 0));
+}
+
 function simulateMenuCapacities(students, capacities) {
   const availableMenus = Object.entries(capacities || {})
-    .filter(([, capacity]) => Number(capacity) > 0)
-    .map(([letter, capacity]) => ({ letter, capacity: Math.floor(Number(capacity)) }));
+    .map(([letter, config]) => ({
+      letter,
+      capacity: Math.floor(Number(typeof config === 'object' && config !== null ? config.capacity : config)),
+      groups: Math.max(1, Math.floor(Number(typeof config === 'object' && config !== null ? (config.groups ?? 1) : 1)))
+    }))
+    .filter(m => m.capacity > 0);
 
   if (availableMenus.length === 0) {
     throw new Error('Aucun menu disponible: donnez une capacité à au moins un menu.');
@@ -244,21 +254,43 @@ function simulateMenuCapacities(students, capacities) {
     byRank[preferenceRank] = (byRank[preferenceRank] || 0) + 1;
   });
 
-  const byMenu = {};
-  availableMenus.forEach(({ letter, capacity }) => {
-    byMenu[letter] = { capacity, assigned: 0, members: [] };
-  });
+  // Regrouper les élèves assignés par menu, triés pour une répartition stable
+  const membersByLetter = {};
   assignments.forEach(({ student, menuLetter, preferenceRank }) => {
-    byMenu[menuLetter].assigned += 1;
-    byMenu[menuLetter].members.push({
+    if (!membersByLetter[menuLetter]) membersByLetter[menuLetter] = [];
+    membersByLetter[menuLetter].push({
       nom: student.nom,
       prenom: student.prenom,
       classe: student.classe,
       preferenceRank
     });
   });
-  Object.values(byMenu).forEach(menu => {
-    menu.members.sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom));
+  Object.values(membersByLetter).forEach(members => {
+    members.sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom));
+  });
+
+  // Si un menu est multiplié (ex: ×2), le diviser en sous-groupes distincts
+  // (Menu A1, Menu A2, ...) avec leur propre liste d'élèves et leur propre capacité.
+  const byMenu = {};
+  availableMenus.forEach(({ letter, capacity, groups }) => {
+    const subCapacities = splitCapacity(capacity, groups);
+    const members = membersByLetter[letter] || [];
+    for (let i = 0; i < groups; i++) {
+      const label = groups > 1 ? `${letter}${i + 1}` : letter;
+      byMenu[label] = {
+        capacity: subCapacities[i],
+        assigned: 0,
+        members: [],
+        baseMenu: letter,
+        groupIndex: i + 1,
+        groupCount: groups
+      };
+    }
+    members.forEach((member, i) => {
+      const label = groups > 1 ? `${letter}${(i % groups) + 1}` : letter;
+      byMenu[label].members.push(member);
+      byMenu[label].assigned += 1;
+    });
   });
 
   const firstChoiceCount = byRank[1] || 0;

@@ -740,6 +740,25 @@ section h2 {
   font-size: 0.95em;
 }
 
+.input-groups {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.simulation-field-label {
+  font-size: 0.8em;
+  color: #666;
+}
+
+.simulation-submenu-note {
+  font-size: 0.85em;
+  font-weight: 400;
+  color: #666;
+}
+
 .simulation-lists-title {
   color: #333;
   font-size: 1em;
