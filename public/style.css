@@ -717,12 +717,61 @@ section h2 {
   margin-bottom: 15px;
 }
 
+.simulation-capacity-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.simulation-capacity-preset {
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 0.9em;
+  background: white;
+}
+
 .input-capacity {
-  width: 80px;
+  width: 70px;
   padding: 6px 8px;
   border: 1px solid #d0d0d0;
   border-radius: 4px;
   font-size: 0.95em;
+}
+
+.simulation-lists-title {
+  color: #333;
+  font-size: 1em;
+  margin: 20px 0 10px;
+}
+
+.simulation-menu-lists {
+  display: grid;
+  gap: 10px;
+}
+
+.simulation-menu-details {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.simulation-menu-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+}
+
+.simulation-menu-details .group-members {
+  margin-top: 10px;
+}
+
+.member-rank {
+  color: #667eea;
+  font-size: 0.85em;
+  font-weight: 500;
 }
 
 .simulation-results {

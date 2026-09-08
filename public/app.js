@@ -478,7 +478,7 @@ function initSimulationSection(students, groups) {
   table.className = 'stats-table simulation-capacities-table';
 
   const thead = document.createElement('thead');
-  thead.innerHTML = '<tr><th>Menu</th><th>1er choix demandé par</th><th>Capacité actuelle</th><th>Capacité à tester</th></tr>';
+  thead.innerHTML = '<tr><th>Menu</th><th>1er choix demandé par</th><th>Capacité actuelle</th><th>Configuration à tester</th></tr>';
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
@@ -502,12 +502,47 @@ function initSimulationSection(students, groups) {
     row.appendChild(currentCapacityCell);
 
     const inputCell = document.createElement('td');
+    inputCell.className = 'simulation-capacity-cell';
+
+    const presets = [
+      { value: 0, label: 'Menu supprimé' },
+      { value: currentCapacity, label: `Normal (${currentCapacity})` },
+      { value: Math.round(currentCapacity * 1.5), label: `×1,5 (${Math.round(currentCapacity * 1.5)})` },
+      { value: currentCapacity * 2, label: `×2 (${currentCapacity * 2})` },
+      { value: currentCapacity * 3, label: `×3 (${currentCapacity * 3})` }
+    ];
+
     const input = document.createElement('input');
     input.type = 'number';
     input.min = '0';
     input.value = currentCapacity;
     input.className = 'input-capacity';
     input.dataset.letter = letter;
+
+    const select = document.createElement('select');
+    select.className = 'simulation-capacity-preset';
+    presets.forEach(preset => {
+      const option = document.createElement('option');
+      option.value = preset.value;
+      option.textContent = preset.label;
+      select.appendChild(option);
+    });
+    const customOption = document.createElement('option');
+    customOption.value = '';
+    customOption.textContent = 'Personnalisé';
+    customOption.hidden = true;
+    select.appendChild(customOption);
+    select.value = currentCapacity;
+
+    select.addEventListener('change', () => {
+      input.value = select.value;
+    });
+    input.addEventListener('input', () => {
+      const matchingPreset = presets.find(p => String(p.value) === input.value);
+      select.value = matchingPreset ? String(matchingPreset.value) : '';
+    });
+
+    inputCell.appendChild(select);
     inputCell.appendChild(input);
     row.appendChild(inputCell);
 
@@ -613,6 +648,31 @@ function displaySimulationResults(result) {
       </tr>
     `).join('');
 
+  const renderStudentList = (items) => items.length
+    ? items.map(s => `
+        <div class="member">
+          <div class="member-name">${escapeHtml(s.prenom)} ${escapeHtml(s.nom)}${s.preferenceRank ? ` <span class="member-rank">(${s.preferenceRank === 1 ? '1er choix' : `${s.preferenceRank}ème choix`})</span>` : ''}</div>
+          <div class="member-info">${escapeHtml(s.classe)}</div>
+        </div>
+      `).join('')
+    : '<p class="small">Aucun élève</p>';
+
+  const menuListsHtml = Object.entries(result.byMenu)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([letter, data]) => `
+      <details class="simulation-menu-details">
+        <summary>Menu ${letter} — ${data.assigned}/${data.capacity} élève${data.assigned > 1 ? 's' : ''}</summary>
+        <div class="group-members">${renderStudentList(data.members)}</div>
+      </details>
+    `).join('');
+
+  const unassignedListHtml = result.unassignedCount > 0 ? `
+    <details class="simulation-menu-details" open>
+      <summary>⚠️ Non assignés — ${result.unassignedCount} élève${result.unassignedCount > 1 ? 's' : ''}</summary>
+      <div class="group-members">${renderStudentList(result.unassignedStudents)}</div>
+    </details>
+  ` : '';
+
   resultsEl.innerHTML = `
     <div class="simulation-summary">
       <div class="simulation-summary-card">
@@ -637,7 +697,18 @@ function displaySimulationResults(result) {
       <thead><tr><th>Menu</th><th>Capacité testée</th><th>Élèves assignés</th><th>Remplissage</th></tr></thead>
       <tbody>${byMenuRowsHtml}</tbody>
     </table>
+    <h4 class="simulation-lists-title">Listes des élèves par menu (configuration testée)</h4>
+    <div class="simulation-menu-lists">
+      ${menuListsHtml}
+      ${unassignedListHtml}
+    </div>
   `;
+}
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value ?? '';
+  return div.innerHTML;
 }
 
 function createGroupCard(groupKey, groupData) {

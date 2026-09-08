@@ -246,10 +246,19 @@ function simulateMenuCapacities(students, capacities) {
 
   const byMenu = {};
   availableMenus.forEach(({ letter, capacity }) => {
-    byMenu[letter] = { capacity, assigned: 0 };
+    byMenu[letter] = { capacity, assigned: 0, members: [] };
   });
-  assignments.forEach(({ menuLetter }) => {
+  assignments.forEach(({ student, menuLetter, preferenceRank }) => {
     byMenu[menuLetter].assigned += 1;
+    byMenu[menuLetter].members.push({
+      nom: student.nom,
+      prenom: student.prenom,
+      classe: student.classe,
+      preferenceRank
+    });
+  });
+  Object.values(byMenu).forEach(menu => {
+    menu.members.sort((a, b) => a.nom.localeCompare(b.nom) || a.prenom.localeCompare(b.prenom));
   });
 
   const firstChoiceCount = byRank[1] || 0;
